@@ -1,41 +1,47 @@
-
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { format } from "date-fns"
-import { ChevronDownIcon } from "lucide-react"
-import { useState } from "react"
+  Route,
+  createBrowserRouter,
+  createRoutesFromElements,
+  RouterProvider,
+  Navigate,
+} from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
+import Home from "./pages/Home";
+import NotFoundPage from "./pages/NotFoundPage";
+// import { useAuth } from "./hooks/AuthContext";
+// import ProtectedRoute from "./components/ProtectedRoute";
+import RootLayout from "./layouts/RootLayout";
 
+function App() {
+  // const { isAuthenticated, loading, user } = useAuth();
 
-export default function App() {
-  const [date, setDate] = useState()
+  const router = createBrowserRouter(
+    createRoutesFromElements(
+      <>
+        <Route path="/" element={<RootLayout />}>
+          <Route index element={<Home />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </>
+    )
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-100 to-indigo-200 flex flex-col items-center justify-center p-6">
-          <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          data-empty={!date}
-          className="w-[212px] justify-between text-left font-normal data-[empty=true]:text-muted-foreground"
-        >
-          {date ? format(date, "PPP") : <span>Pick a date</span>}
-          <ChevronDownIcon />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={setDate}
-          defaultMonth={date}
-        />
-      </PopoverContent>
-    </Popover>
-    </div>
+    <>
+      <RouterProvider router={router} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        closeOnClick
+        pauseOnHover
+        draggable
+        toastClassName={() =>
+          "relative flex p-5 min-h-10 rounded-md justify-between overflow-hidden cursor-pointer bg-[#0f172a] text-white"
+        }
+      />
+    </>
   );
 }
+
+export default App;
