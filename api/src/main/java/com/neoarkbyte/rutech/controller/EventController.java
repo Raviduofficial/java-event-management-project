@@ -1,7 +1,7 @@
 package com.neoarkbyte.rutech.controller;
 
-import com.neoarkbyte.rutech.dto.EventCreateDTO;
-import com.neoarkbyte.rutech.dto.EventResponseDTO;
+import com.neoarkbyte.rutech.dto.event.EventCreateDTO;
+import com.neoarkbyte.rutech.dto.event.EventResponseDTO;
 import com.neoarkbyte.rutech.service.EventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

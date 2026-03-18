@@ -1,5 +1,6 @@
 package com.neoarkbyte.rutech.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.neoarkbyte.rutech.util.Utils;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -11,6 +12,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @Entity
@@ -24,7 +26,7 @@ public class Event {
     private String event_id;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    private Map<String, Object> budgetReport;
+    private Map<String, Object> budget_report;
 
     @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> sponsorships;
@@ -39,21 +41,27 @@ public class Event {
     @JoinColumn(name = "venue_id")
     private Venue venue;
 
-    private boolean isBudgetReportVerified;
-    private boolean isSponsorshipsVerified;
-    private boolean isMarketingVerified;
-    private boolean isCommitteeVerified;
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "event_id")
+    private List<PermissionLetter> permissions;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime start_time;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime end_time;
 
     @CreationTimestamp
-    private LocalDateTime createdAt;
+    @Column(updatable = false)
+    private LocalDateTime created_at;
 
     @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    private LocalDateTime updated_at;
 
     @PrePersist
     public void generateId() {
         if (event_id == null) {
-            event_id = Utils.generateId("EVENT", 6);;
+            event_id = Utils.generateId("EVENT", 6);
         }
     }
 }

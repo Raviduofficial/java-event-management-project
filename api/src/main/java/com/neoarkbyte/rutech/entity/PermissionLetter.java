@@ -9,15 +9,19 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "venue")
+@Table(name = "permission_letters")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class PermissionLetter{
     @Id
-    private String letter_id = Utils.generateId("VEN", 6);
+    private String letter_id = Utils.generateId("PL", 6);
+
+    private String letter_title;
 
     private String letter_description;
 
     private String letter_url;
+
+    private Boolean is_verified;
 }
