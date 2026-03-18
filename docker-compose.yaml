@@ -1,0 +1,24 @@
+services:
+  db:
+    container_name: postgres_db_instance
+    image: postgres
+    environment:
+      POSTGRES_USER: rutech_user
+      POSTGRES_DB: rutech_db
+      POSTGRES_PASSWORD: 1234
+      PGDATA: /data/postgres
+    volumes:
+      - db:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - db
+    restart:
+      unless-stopped
+
+volumes:
+  db:
+
+networks:
+  db:
+    driver: bridge
