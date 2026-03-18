@@ -1,14 +1,17 @@
 package com.neoarkbyte.rutech.service;
 
-import com.neoarkbyte.rutech.dto.EventCreateDTO;
-import com.neoarkbyte.rutech.dto.EventResponseDTO;
+import com.neoarkbyte.rutech.dto.event.EventCreateDTO;
+import com.neoarkbyte.rutech.dto.event.EventResponseDTO;
 import com.neoarkbyte.rutech.entity.Event;
+import com.neoarkbyte.rutech.entity.PermissionLetter;
 import com.neoarkbyte.rutech.entity.Venue;
 import com.neoarkbyte.rutech.mapper.EventMapper;
 import com.neoarkbyte.rutech.repository.EventRepository;
+import com.neoarkbyte.rutech.repository.LetterRepository;
 import com.neoarkbyte.rutech.repository.VenueRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -18,10 +21,24 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final VenueRepository venueRepository;
+    private final LetterRepository letterRepository; // Added
     private final EventMapper eventMapper;
 
+    @Transactional
     public EventResponseDTO createEvent(EventCreateDTO createDTO) {
         Event event = eventMapper.toEntity(createDTO);
+
+        if (createDTO.getVenue_id() != null) {
+            Venue venue = venueRepository.findById(createDTO.getVenue_id())
+                    .orElseThrow(() -> new RuntimeException("Venue not found: " + createDTO.getVenue_id()));
+            event.setVenue(venue);
+        }
+
+        if (createDTO.getLetter_ids() != null && !createDTO.getLetter_ids().isEmpty()) {
+            List<PermissionLetter> permissions = letterRepository.findAllById(createDTO.getLetter_ids());
+            event.setPermissions(permissions);
+        }
+
         Event savedEvent = eventRepository.save(event);
         return eventMapper.toResponseDTO(savedEvent);
     }
@@ -36,29 +53,29 @@ public class EventService {
         return eventMapper.toResponseDTOs(eventRepository.findAll());
     }
 
+    @Transactional
     public EventResponseDTO updateEvent(String id, EventCreateDTO updateDTO) {
         Event existingEvent = eventRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Event not found with id: " + id));
 
-        existingEvent.setBudgetReport(updateDTO.getBudgetReport());
+        existingEvent.setBudget_report(updateDTO.getBudget_report());
         existingEvent.setSponsorships(updateDTO.getSponsorships());
         existingEvent.setMarketing(updateDTO.getMarketing());
         existingEvent.setCommittee(updateDTO.getCommittee());
 
-        // Update venue if changed
+        existingEvent.setStart_time(updateDTO.getStart_time());
+        existingEvent.setEnd_time(updateDTO.getEnd_time());
 
-        // Update venue if DTO has it
-        if (updateDTO.getVenue() != null && updateDTO.getVenue().getVen_id() != null) {
-            String venId = updateDTO.getVenue().getVen_id();
-            Venue venue = venueRepository.findById(venId)
-                    .orElseThrow(() -> new RuntimeException("Venue not found with id: " + venId));
+        if (updateDTO.getVenue_id() != null) {
+            Venue venue = venueRepository.findById(updateDTO.getVenue_id())
+                    .orElseThrow(() -> new RuntimeException("Venue not found: " + updateDTO.getVenue_id()));
             existingEvent.setVenue(venue);
         }
 
-        existingEvent.setBudgetReportVerified(updateDTO.isBudgetReportVerified());
-        existingEvent.setSponsorshipsVerified(updateDTO.isSponsorshipsVerified());
-        existingEvent.setMarketingVerified(updateDTO.isMarketingVerified());
-        existingEvent.setCommitteeVerified(updateDTO.isCommitteeVerified());
+        if (updateDTO.getLetter_ids() != null) {
+            List<PermissionLetter> permissions = letterRepository.findAllById(updateDTO.getLetter_ids());
+            existingEvent.setPermissions(permissions);
+        }
 
         Event updatedEvent = eventRepository.save(existingEvent);
         return eventMapper.toResponseDTO(updatedEvent);

@@ -10,13 +10,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "venue")
+@Table(name = "venues")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Venue {
     @Id
-    private String ven_id = Utils.generateId("VEN", 6);
+    private String venue_id = Utils.generateId("VEN", 6);
 
     private String name;
 
@@ -28,8 +28,8 @@ public class Venue {
 
     @PrePersist
     public void generateId() {
-        if (ven_id == null) {
-            ven_id = Utils.generateId("VEN", 6);;
+        if (venue_id == null) {
+            venue_id = Utils.generateId("VEN", 6);;
         }
     }
 }

@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 public class User {
 
     @Id
-    private String userId;
+    private String user_id;
 
     @Column(nullable = false)
     private String name;
@@ -32,12 +32,12 @@ public class User {
 
     @PrePersist
     public void generateId() {
-        if (userId == null && role != null) {
+        if (user_id == null && role != null) {
             switch (role) {
-                case ADMIN_LEC -> userId = Utils.generateId("LEC", 6);
-                case BATCH_REP -> userId = Utils.generateId("REP", 6);
-                case ORGANIZATION -> userId = Utils.generateId("ORG", 6);
-                default -> userId = Utils.generateId("LEC", 6); // fallback
+                case ADMIN_LEC -> user_id = Utils.generateId("LEC", 6);
+                case BATCH_REP -> user_id = Utils.generateId("REP", 6);
+                case ORGANIZATION -> user_id = Utils.generateId("ORG", 6);
+                default -> user_id = Utils.generateId("LEC", 6); // fallback
             }
         }
     }

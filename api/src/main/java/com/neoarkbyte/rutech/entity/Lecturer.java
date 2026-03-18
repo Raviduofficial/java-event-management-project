@@ -11,7 +11,7 @@ import lombok.*;
 public class Lecturer {
 
     @Id
-    private String userId;
+    private String user_id;
 
     @OneToOne
     @JoinColumn(name = "user_id")

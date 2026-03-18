@@ -15,7 +15,7 @@ import java.util.Map;
 public class Organization {
 
     @Id
-    private String userId;
+    private String user_id;
 
     private String organizationName;
 

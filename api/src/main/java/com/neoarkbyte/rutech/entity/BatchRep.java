@@ -11,7 +11,7 @@ import lombok.*;
 public class BatchRep {
 
     @Id
-    private String rep_Id;
+    private String rep_id;
 
     @OneToOne
     @JoinColumn(name = "user_id")
