@@ -12,18 +12,10 @@ import java.util.Map;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Organization {
-
-    @Id
-    private String user_id;
-
-    private String organizationName;
+@EqualsAndHashCode(callSuper = true)
+public class Organization extends User {
 
     private String organizationType;
-
-    @OneToOne
-    @JoinColumn(name = "user_id")
-    private User user;
 
     @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> committee;

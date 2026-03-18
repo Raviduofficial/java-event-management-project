@@ -8,16 +8,8 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class BatchRep {
-
-    @Id
-    private String rep_id;
-
-    @OneToOne
-    @JoinColumn(name = "user_id")
-    private User user;
-
-    private String name;
+@EqualsAndHashCode(callSuper = true)
+public class BatchRep extends User{
 
     private String batch_name;
 

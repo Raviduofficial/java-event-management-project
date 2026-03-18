@@ -8,14 +8,8 @@ import lombok.*;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Lecturer {
-
-    @Id
-    private String user_id;
-
-    @OneToOne
-    @JoinColumn(name = "user_id")
-    private User user;
+@EqualsAndHashCode(callSuper = true)
+public class Lecturer extends User{
 
     private String department;
 
