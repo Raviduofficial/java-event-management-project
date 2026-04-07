@@ -1,0 +1,4 @@
+@import "tailwindcss";
+@theme {
+  --color-uor-blue: #0e1b35;
+}
