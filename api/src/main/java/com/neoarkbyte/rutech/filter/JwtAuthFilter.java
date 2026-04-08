@@ -71,4 +71,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         // Bearer <token>
         return authHeader.substring(7);
     }
+
+    // may be later change the filter for completely stateless
 }

@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cglib.core.internal.Function;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -49,6 +50,15 @@ public class JwtService {
     public String generateAccessToken(Authentication authentication) {
         Map<String, String> claims = new HashMap<>();
         claims.put("tokenType", TokenType.ACCESS.name());
+
+        UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
+        String role = userPrincipal.getAuthorities().stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .get();
+
+        claims.put("role", role);
+
         return generateToken(authentication, jwtExpirationMs, claims);
     }
 
@@ -159,6 +169,11 @@ public class JwtService {
     private <T> T extractClaim(String token, Function<Claims, T> claimResolver) {
         final Claims claims = extractAllClaims(token);
         return claimResolver.apply(claims);
+    }
+
+    public String extractRoleFromToken(String token) {
+        Claims claims = extractAllClaims(token);
+        return claims.get("role", String.class);
     }
 
     private Claims extractAllClaims(String token) {
