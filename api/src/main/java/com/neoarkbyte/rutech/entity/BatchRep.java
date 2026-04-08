@@ -11,7 +11,7 @@ import lombok.*;
 @EqualsAndHashCode(callSuper = true)
 public class BatchRep extends User{
 
-    private String batch_name;
+    private String batchName;
 
     private Integer year;
 }
