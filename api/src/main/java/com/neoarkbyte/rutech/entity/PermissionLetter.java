@@ -3,6 +3,7 @@ package com.neoarkbyte.rutech.entity;
 import com.neoarkbyte.rutech.util.Utils;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,13 +16,20 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PermissionLetter{
     @Id
-    private String letter_id = Utils.generateId("PL", 6);
+    private String letterId;
 
-    private String letter_title;
+    private String letterTitle;
 
-    private String letter_description;
+    private String letterDescription;
 
-    private String letter_url;
+    private String letterUrl;
 
-    private Boolean is_verified;
+    private Boolean isVerified;
+
+    @PrePersist
+    public void generateId() {
+        if (letterId == null) {
+            letterId = Utils.generateId("PL", 6);
+        }
+    }
 }
