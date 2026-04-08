@@ -1,4 +1,4 @@
-package com.neoarkbyte.rutech.dto;
+package com.neoarkbyte.rutech.dto.auth;
 
 import com.neoarkbyte.rutech.type.ROLE;
 import lombok.Data;

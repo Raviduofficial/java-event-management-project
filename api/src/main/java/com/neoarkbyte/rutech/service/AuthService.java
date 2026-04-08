@@ -1,15 +1,20 @@
 package com.neoarkbyte.rutech.service;
 
-import com.neoarkbyte.rutech.dto.UserCreateDTO;
+import com.neoarkbyte.rutech.dto.TokenPair;
+import com.neoarkbyte.rutech.dto.auth.TokenRefreshDTO;
+import com.neoarkbyte.rutech.dto.auth.UserCreateDTO;
+import com.neoarkbyte.rutech.dto.auth.UserLoginDTO;
 import com.neoarkbyte.rutech.entity.*;
-import com.neoarkbyte.rutech.mapper.UserMapper;
 import com.neoarkbyte.rutech.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import jakarta.validation.Valid;
+
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +23,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final UserFactory userFactory;
     private final AuthenticationManager authManager;
+    private final JwtService jwtService;
+    private final CustomUserDetailsService userDetailsService;
 
 
     public User register(UserCreateDTO dto) {
@@ -42,17 +49,43 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-    public String verify(User user) {
+    public TokenPair verify(UserLoginDTO user) {
         Authentication authentication = authManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUserName(), user.getPassword()));
-
         if (authentication.isAuthenticated()) {
-//            String token = jwtService.generateAccessToken(user.getUserName());
-//            return new AuthResponse(token, "Login Successful");
-            return "Login Successfull";
+            TokenPair tokenPair = jwtService.generateTokenPair(authentication);
+            return tokenPair;
         }
 
-//        return new AuthResponse("", "Login Failed");
-        return "Login Failed";
+        return null;
+    }
+
+    public TokenPair refreshToken(@Valid TokenRefreshDTO dto) {
+
+        String refreshToken = dto.getRefreshToken();
+        if(!jwtService.isRefreshToken(refreshToken)) {
+            throw new IllegalArgumentException("Invalid refresh token");
+        }
+
+        boolean revoked = jwtService.revokeRefreshToken(refreshToken);
+        if (!revoked) {
+            throw new IllegalArgumentException("Refresh token is invalid or already used");
+        }
+
+        String user = jwtService.extractUsernameFromToken(refreshToken);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user);
+
+        if (userDetails == null) {
+            throw new IllegalArgumentException("User not found");
+        }
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities()
+                );
+
+        return jwtService.generateTokenPair(authentication);
     }
 
 

@@ -12,9 +12,9 @@ import java.util.Map;
 @Data
 public class EventResponseDTO {
 
-    private String event_id;
+    private String eventId;
 
-    private Map<String, Object> budget_report;
+    private Map<String, Object> budgetReport;
     private Map<String, Object> sponsorships;
     private Map<String, Object> marketing;
     private Map<String, Object> committee;
@@ -23,14 +23,14 @@ public class EventResponseDTO {
     private List<PermissionLetter> permissions;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime start_time;
+    private LocalDateTime startTime;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime end_time;
+    private LocalDateTime endTime;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime created_at;
+    private LocalDateTime createdAt;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime updated_at;
+    private LocalDateTime updatedAt;
 }

@@ -1,6 +1,9 @@
 package com.neoarkbyte.rutech.controller;
 
-import com.neoarkbyte.rutech.dto.UserCreateDTO;
+import com.neoarkbyte.rutech.dto.TokenPair;
+import com.neoarkbyte.rutech.dto.auth.TokenRefreshDTO;
+import com.neoarkbyte.rutech.dto.auth.UserCreateDTO;
+import com.neoarkbyte.rutech.dto.auth.UserLoginDTO;
 import com.neoarkbyte.rutech.entity.User;
 import com.neoarkbyte.rutech.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -23,11 +26,18 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public String login(@RequestBody User user){
-        String response = authService.verify(user);
+    public ResponseEntity<TokenPair> login(@RequestBody UserLoginDTO dto){
+        TokenPair response = authService.verify(dto);
 
-//        return ResponseEntity.ok(response);
-        return response;
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<TokenPair> login(@RequestBody TokenRefreshDTO dto){
+        System.out.println(dto.getRefreshToken());
+        TokenPair response = authService.refreshToken(dto);
+
+        return ResponseEntity.ok(response);
     }
 
 }

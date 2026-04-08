@@ -1,8 +1,7 @@
 package com.neoarkbyte.rutech.entity;
 
-import com.neoarkbyte.rutech.dto.UserCreateDTO;
+import com.neoarkbyte.rutech.dto.auth.UserCreateDTO;
 import com.neoarkbyte.rutech.mapper.UserMapper;
-import com.neoarkbyte.rutech.type.ROLE;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

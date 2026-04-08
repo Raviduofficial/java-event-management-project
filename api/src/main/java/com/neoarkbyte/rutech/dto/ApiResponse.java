@@ -1,4 +1,4 @@
-package com.neoarkbyte.rutech.dto.event;
+package com.neoarkbyte.rutech.dto;
 
 import lombok.*;
 

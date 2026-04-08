@@ -1,10 +1,9 @@
 package com.neoarkbyte.rutech.mapper;
 
-import com.neoarkbyte.rutech.dto.UserCreateDTO;
+import com.neoarkbyte.rutech.dto.auth.UserCreateDTO;
 import com.neoarkbyte.rutech.entity.BatchRep;
 import com.neoarkbyte.rutech.entity.Lecturer;
 import com.neoarkbyte.rutech.entity.Organization;
-import com.neoarkbyte.rutech.entity.User;
 import org.mapstruct.*;
 
 import java.util.Map;
