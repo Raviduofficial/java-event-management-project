@@ -23,10 +23,10 @@ import java.util.Map;
 public class Event {
 
     @Id
-    private String event_id;
+    private String eventId;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    private Map<String, Object> budget_report;
+    private Map<String, Object> budgetReport;
 
     @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> sponsorships;
@@ -46,22 +46,22 @@ public class Event {
     private List<PermissionLetter> permissions;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime start_time;
+    private LocalDateTime startTime;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime end_time;
+    private LocalDateTime endTime;
 
     @CreationTimestamp
     @Column(updatable = false)
-    private LocalDateTime created_at;
+    private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    private LocalDateTime updated_at;
+    private LocalDateTime updatedAt;
 
     @PrePersist
     public void generateId() {
-        if (event_id == null) {
-            event_id = Utils.generateId("EVENT", 6);
+        if (eventId == null) {
+            eventId = Utils.generateId("EVENT", 6);
         }
     }
 }

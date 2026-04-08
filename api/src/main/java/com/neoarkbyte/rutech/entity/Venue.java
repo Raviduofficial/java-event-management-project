@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Venue {
     @Id
-    private String venue_id = Utils.generateId("VEN", 6);
+    private String venueId;
 
     private String name;
 
@@ -24,12 +24,12 @@ public class Venue {
 
     private String description;
 
-    private boolean is_booked;
+    private boolean isBooked;
 
     @PrePersist
     public void generateId() {
-        if (venue_id == null) {
-            venue_id = Utils.generateId("VEN", 6);;
+        if (venueId == null) {
+            venueId = Utils.generateId("VEN", 6);;
         }
     }
 }

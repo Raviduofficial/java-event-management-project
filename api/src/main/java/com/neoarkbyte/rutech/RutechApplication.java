@@ -2,6 +2,7 @@ package com.neoarkbyte.rutech;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -13,6 +14,7 @@ public class RutechApplication {
 		SpringApplication.run(RutechApplication.class, args);
 	}
 
+//	@PreAuthorize("hasRole('BATCH_REP')")
 	@GetMapping
 	public String getIndexPath() {
 		return "Welcome to Rutech Event Management System";
