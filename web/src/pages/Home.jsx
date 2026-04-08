@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   Search, Calendar, MapPin, Filter, 
   ChevronLeft, ChevronRight, Clock
 } from 'lucide-react';
 
 const Home = () => {
+
+   useEffect(() => {
+    // Simple fetch request
+    fetch('http://localhost:8080/test-json')
+      .then((response) => response.json()) // Parse JSON
+      .then((data) => console.log('Fetched data:', data)) // Log data
+      .catch((error) => console.error('Error:', error)); // Handle errors
+  }, []);
 
   // ඉස්සරහට Backend එකෙන් එන Data මේ විදියට තමයි තියාගන්නේ
   const eventData = [
