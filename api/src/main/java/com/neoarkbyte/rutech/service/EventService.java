@@ -28,14 +28,14 @@ public class EventService {
     public EventResponseDTO createEvent(EventCreateDTO createDTO) {
         Event event = eventMapper.toEntity(createDTO);
 
-        if (createDTO.getVenue_id() != null) {
-            Venue venue = venueRepository.findById(createDTO.getVenue_id())
-                    .orElseThrow(() -> new RuntimeException("Venue not found: " + createDTO.getVenue_id()));
+        if (createDTO.getVenueId() != null) {
+            Venue venue = venueRepository.findById(createDTO.getVenueId())
+                    .orElseThrow(() -> new RuntimeException("Venue not found: " + createDTO.getVenueId()));
             event.setVenue(venue);
         }
 
-        if (createDTO.getLetter_ids() != null && !createDTO.getLetter_ids().isEmpty()) {
-            List<PermissionLetter> permissions = letterRepository.findAllById(createDTO.getLetter_ids());
+        if (createDTO.getLetterIds() != null && !createDTO.getLetterIds().isEmpty()) {
+            List<PermissionLetter> permissions = letterRepository.findAllById(createDTO.getLetterIds());
             event.setPermissions(permissions);
         }
 
@@ -58,22 +58,22 @@ public class EventService {
         Event existingEvent = eventRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Event not found with id: " + id));
 
-        existingEvent.setBudget_report(updateDTO.getBudget_report());
+        existingEvent.setBudgetReport(updateDTO.getBudgetReport());
         existingEvent.setSponsorships(updateDTO.getSponsorships());
         existingEvent.setMarketing(updateDTO.getMarketing());
         existingEvent.setCommittee(updateDTO.getCommittee());
 
-        existingEvent.setStart_time(updateDTO.getStart_time());
-        existingEvent.setEnd_time(updateDTO.getEnd_time());
+        existingEvent.setStartTime(updateDTO.getStartTime());
+        existingEvent.setEndTime(updateDTO.getEndTime());
 
-        if (updateDTO.getVenue_id() != null) {
-            Venue venue = venueRepository.findById(updateDTO.getVenue_id())
-                    .orElseThrow(() -> new RuntimeException("Venue not found: " + updateDTO.getVenue_id()));
+        if (updateDTO.getVenueId() != null) {
+            Venue venue = venueRepository.findById(updateDTO.getVenueId())
+                    .orElseThrow(() -> new RuntimeException("Venue not found: " + updateDTO.getVenueId()));
             existingEvent.setVenue(venue);
         }
 
-        if (updateDTO.getLetter_ids() != null) {
-            List<PermissionLetter> permissions = letterRepository.findAllById(updateDTO.getLetter_ids());
+        if (updateDTO.getLetterIds() != null) {
+            List<PermissionLetter> permissions = letterRepository.findAllById(updateDTO.getLetterIds());
             existingEvent.setPermissions(permissions);
         }
 
