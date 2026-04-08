@@ -12,7 +12,7 @@ import java.util.List;
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface EventMapper {
 
-    @Mapping(target = "event_id", ignore = true)
+    @Mapping(target = "eventId", ignore = true)
     @Mapping(target = "venue", ignore = true)
     @Mapping(target = "permissions", ignore = true)
     Event toEntity(EventCreateDTO eventCreateDTO);
