@@ -50,7 +50,7 @@ public class SecurityConfig {
                         )
                         .permitAll()
                         .anyRequest().authenticated())
-                .httpBasic(Customizer.withDefaults())
+//                .httpBasic(Customizer.withDefaults())
                 .sessionManagement(
                         session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )

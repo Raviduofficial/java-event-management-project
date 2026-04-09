@@ -173,7 +173,12 @@ public class JwtService {
 
     public String extractRoleFromToken(String token) {
         Claims claims = extractAllClaims(token);
-        return claims.get("role", String.class);
+
+        if(claims != null) {
+            return claims.get("role", String.class);
+        }
+
+        return null;
     }
 
     private Claims extractAllClaims(String token) {

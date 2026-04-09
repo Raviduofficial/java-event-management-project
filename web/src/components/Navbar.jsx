@@ -1,11 +1,12 @@
 import React from 'react';
 import { Search, Bell, ShieldCheck, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const user = JSON.parse(localStorage.getItem('loggedUser'));
+  const { user, logout } = useAuth();
 
   // 💡 Roles දෙකම අඳුරගන්නවා
   const isAdmin = user && user.role === 'admin';
@@ -18,7 +19,7 @@ const Navbar = () => {
 
   // Logout Function එක
   const handleLogout = () => {
-    localStorage.removeItem('loggedUser'); 
+    logout();
     navigate('/login'); 
   };
 

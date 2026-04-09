@@ -5,12 +5,13 @@ import {
   MonitorPlay, Printer, Image as ImageIcon, Video, Ticket, Mic, HeartHandshake, Eye
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const EventDetails = () => {
   const navigate = useNavigate();
   
   // ලොග් වෙලා ඉන්න කෙනාගේ විස්තර ගන්නවා (Manage button එක පෙන්වන්න)
-  const user = JSON.parse(localStorage.getItem('loggedUser'));
+  const { user } = useAuth();
   const canManage = user && (user.role === 'admin' || user.role === 'coordinator');
 
   return (
