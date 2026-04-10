@@ -6,12 +6,18 @@ import com.neoarkbyte.rutech.dto.auth.UserCreateDTO;
 import com.neoarkbyte.rutech.dto.auth.UserLoginDTO;
 import com.neoarkbyte.rutech.entity.User;
 import com.neoarkbyte.rutech.service.AuthService;
+import com.neoarkbyte.rutech.service.JwtService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -19,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtService jwtService;
 
     @PostMapping("/register")
     public User addStudent(@RequestBody UserCreateDTO dto){
@@ -26,18 +33,88 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<TokenPair> login(@RequestBody UserLoginDTO dto){
-        TokenPair response = authService.verify(dto);
+    public ResponseEntity<?> login(@RequestBody UserLoginDTO dto){
 
-        return ResponseEntity.ok(response);
+        TokenPair tokenPair = authService.verify(dto);
+
+        ResponseCookie refreshCookie = buildRefreshCookie(tokenPair.getRefreshToken());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(Map.of("accessToken", tokenPair.getAccessToken()));
     }
 
-    @PostMapping("/refresh-token")
-    public ResponseEntity<TokenPair> login(@RequestBody TokenRefreshDTO dto){
-        System.out.println(dto.getRefreshToken());
-        TokenPair response = authService.refreshToken(dto);
 
-        return ResponseEntity.ok(response);
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken(
+            @CookieValue(name = "refreshToken", required = true) String refreshToken
+    ){
+
+        if (refreshToken == null) {
+            return ResponseEntity.status(401).body("Missing refresh token");
+        }
+
+        TokenPair tokenPair = authService.refreshToken(refreshToken);
+
+        ResponseCookie refreshCookie = buildRefreshCookie(tokenPair.getRefreshToken());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(Map.of("accessToken", tokenPair.getAccessToken()));
+    }
+
+    private ResponseCookie buildRefreshCookie(String token) {
+        return ResponseCookie.from("refreshToken", token)
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(7 * 24 * 60 * 60)
+                .sameSite("Lax")
+                .build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> userInfo(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+        }
+
+        String token = authHeader.substring(7);
+
+        String username = jwtService.extractUsernameFromToken(token);
+        String role = jwtService.extractRoleFromToken(token);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("username", username);
+        response.put("role", role);
+
+        return ResponseEntity.ok(Map.of(
+                "username", username,
+                "role", role
+        ));
+
+    }
+
+    @GetMapping("/logout")
+    public ResponseEntity<?> userLogout(Authentication authentication) {
+
+        if (authentication != null && authentication.isAuthenticated()) {
+            jwtService.revokeAllRefreshTokensByUserId(authentication);
+        }
+
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
+                .body(Map.of("message", "Logged out successfully"));
     }
 
 }
