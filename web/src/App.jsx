@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Organizations from './pages/Organizations';
@@ -16,16 +16,34 @@ import EventDetails from './pages/EventDetails';
 import ManageEvent from './pages/ManageEvent';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
+import { useAuth } from './contexts/AuthContext';
 
 function App() {
+
+  const { user, isAuthenticated } = useAuth();
+
   return (
     <Routes>
       <Route element={<RootLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
         <Route path="/organizations" element={<Organizations />} />
         <Route path="/organization-overview" element={<OrganizationOverview />} />
         <Route path="/add-event" element={<AddEvent />} />
+
+        <Route
+          path="/login"
+          element={
+            !isAuthenticated ? (
+              <Login />
+            ) : user?.role === "ROLE_BATCH_REP" ? (
+              <Navigate to="/coordinator-dashboard" />
+            ) : user?.role === "ROLE_ADMIN_LEC" ? (
+              <Navigate to="/admin-dashboard" />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
 
         <Route element={<ProtectedRoute allowedRoles={["ROLE_ADMIN_LEC"]} />}>
           <Route path="/admin-dashboard" element={<AdminDashboard />} />

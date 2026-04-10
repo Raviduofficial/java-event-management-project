@@ -9,6 +9,7 @@ import com.neoarkbyte.rutech.service.AuthService;
 import com.neoarkbyte.rutech.service.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -46,7 +47,7 @@ public class AuthController {
 
     @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshToken(
-            @CookieValue(name = "refreshToken", required = false) String refreshToken
+            @CookieValue(name = "refreshToken", required = true) String refreshToken
     ){
 
         if (refreshToken == null) {
@@ -66,7 +67,7 @@ public class AuthController {
         return ResponseCookie.from("refreshToken", token)
                 .httpOnly(true)
                 .secure(false)
-                .path("/api/auth/refresh-token")
+                .path("/")
                 .maxAge(7 * 24 * 60 * 60)
                 .sameSite("Lax")
                 .build();
@@ -97,11 +98,16 @@ public class AuthController {
     }
 
     @GetMapping("/logout")
-    public ResponseEntity<?> userLogout() {
+    public ResponseEntity<?> userLogout(Authentication authentication) {
+
+        if (authentication != null && authentication.isAuthenticated()) {
+            jwtService.revokeAllRefreshTokensByUserId(authentication);
+        }
+
         ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
                 .secure(false)
-                .path("/api/auth/refresh-token")
+                .path("/")
                 .maxAge(0)
                 .sameSite("Lax")
                 .build();
