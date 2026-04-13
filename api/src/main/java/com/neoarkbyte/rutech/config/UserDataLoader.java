@@ -1,4 +1,4 @@
-package com.neoarkbyte.rutech;
+package com.neoarkbyte.rutech.config;
 
 import com.neoarkbyte.rutech.entity.Lecturer;
 import com.neoarkbyte.rutech.entity.User;

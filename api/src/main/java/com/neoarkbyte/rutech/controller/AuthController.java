@@ -1,17 +1,15 @@
 package com.neoarkbyte.rutech.controller;
 
 import com.neoarkbyte.rutech.dto.TokenPair;
-import com.neoarkbyte.rutech.dto.auth.TokenRefreshDTO;
 import com.neoarkbyte.rutech.dto.auth.UserCreateDTO;
 import com.neoarkbyte.rutech.dto.auth.UserLoginDTO;
 import com.neoarkbyte.rutech.entity.User;
-import com.neoarkbyte.rutech.service.AuthService;
-import com.neoarkbyte.rutech.service.JwtService;
+import com.neoarkbyte.rutech.service.impl.AuthService;
+import com.neoarkbyte.rutech.service.impl.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -1,4 +1,4 @@
-package com.neoarkbyte.rutech.service;
+package com.neoarkbyte.rutech.service.impl;
 
 import com.neoarkbyte.rutech.dto.TokenPair;
 import com.neoarkbyte.rutech.entity.RefreshToken;

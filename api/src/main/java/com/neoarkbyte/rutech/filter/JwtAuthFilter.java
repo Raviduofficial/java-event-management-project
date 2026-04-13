@@ -1,7 +1,7 @@
 package com.neoarkbyte.rutech.filter;
 
 
-import com.neoarkbyte.rutech.service.JwtService;
+import com.neoarkbyte.rutech.service.impl.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

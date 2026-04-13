@@ -1,4 +1,4 @@
-package com.learnwithifte.apiResponses;
+package com.neoarkbyte.rutech.dto;
 
 public class ResponseUtil {
     public static <T> ApiResponse<T> success(String message, T data, Object metadata) {
