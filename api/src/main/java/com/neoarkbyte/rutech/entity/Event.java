@@ -1,6 +1,8 @@
 package com.neoarkbyte.rutech.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.neoarkbyte.rutech.type.STATUS;
 import com.neoarkbyte.rutech.util.Utils;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -25,6 +27,14 @@ public class Event {
     @Id
     private String eventId;
 
+    private String title;
+
+    private String about;
+
+    private String eventUrl;
+
+    private String agendaUrl;
+
     @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> budgetReport;
 
@@ -38,12 +48,16 @@ public class Event {
     private Map<String, Object> committee;
 
     @ManyToOne
+    @JoinColumn(name = "coordinator_id")
+    private User coordinator;
+
+    @ManyToOne
     @JoinColumn(name = "venue_id")
     private Venue venue;
 
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "event_id")
-    private List<PermissionLetter> permissions;
+    @OneToMany(mappedBy = "event")
+    @JsonManagedReference
+    private List<PermissionLetter> permissionLetters;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;
@@ -58,10 +72,16 @@ public class Event {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    private STATUS status;
+
     @PrePersist
-    public void generateId() {
+    public void generateFields() {
         if (eventId == null) {
             eventId = Utils.generateId("EVENT", 6);
+        }
+
+        if (status == null) {
+            status = STATUS.PENDING;
         }
     }
 }
