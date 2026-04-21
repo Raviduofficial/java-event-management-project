@@ -1,6 +1,6 @@
 package com.neoarkbyte.rutech.type;
 
-public enum TOKEN {
+public enum TokenType {
     ACCESS,
     REFRESH,
 }
