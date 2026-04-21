@@ -3,15 +3,14 @@ package com.neoarkbyte.rutech.controller;
 import com.neoarkbyte.rutech.dto.ApiResponse;
 import com.neoarkbyte.rutech.dto.ResponseUtil;
 import com.neoarkbyte.rutech.service.FileService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -35,12 +34,6 @@ public class FileController {
         return ResponseEntity.ok(ResponseUtil.success("File uploaded successfully", filename, null));
     }
 
-    @ExceptionHandler(MultipartException.class)
-    public ResponseEntity<ApiResponse<String>> handleMultipartException(MultipartException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ResponseUtil.error("Request must be multipart/form-data with a file field named 'file'", null));
-    }
-
     @GetMapping("/download/{filename:.+}")
     public ResponseEntity<Resource> download(@PathVariable String filename) {
         Resource file = fileService.downloadFile(filename);
@@ -57,7 +50,8 @@ public class FileController {
 
         try {
             contentType = request.getServletContext().getMimeType(file.getFile().getAbsolutePath());
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
         if (contentType == null) {
@@ -71,13 +65,19 @@ public class FileController {
     }
 
     @GetMapping
-    public List<String> listFiles() {
-        return fileService.listFiles();
+    public ResponseEntity<ApiResponse<List<String>>> listFiles() {
+        return ResponseEntity.ok(ResponseUtil.success("Files listed successfully", fileService.listFiles(), null));
     }
 
 
     @DeleteMapping("/{filename}")
-    public String delete(@PathVariable String filename) {
-        return fileService.deleteFile(filename) ? "Deleted" : "Not Found";
+    public ResponseEntity<ApiResponse<String>> delete(@PathVariable String filename) {
+        boolean deleted = fileService.deleteFile(filename);
+        if (deleted) {
+            return ResponseEntity.ok(ResponseUtil.success("File deleted successfully", "Deleted", null));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ResponseUtil.error("File not found", "Not Found"));
+        }
     }
 }

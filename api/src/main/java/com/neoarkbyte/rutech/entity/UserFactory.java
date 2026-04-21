@@ -31,4 +31,22 @@ public class UserFactory {
 
         return user;
     }
+
+    public User updateUser(UserCreateDTO dto, User user) {
+
+        switch (dto.getRole()) {
+            case ADMIN_LEC -> {
+                userMapper.updateUserFromDto(dto, (Lecturer) user);
+            }
+            case BATCH_REP -> {
+                userMapper.updateUserFromDto(dto, (BatchRep) user);
+            }
+            case ORGANIZATION -> {
+                userMapper.updateUserFromDto(dto, (Organization) user);
+            }
+            default -> throw new IllegalArgumentException("Invalid role: " + dto.getRole());
+        }
+
+        return user;
+    }
 }
