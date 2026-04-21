@@ -1,7 +1,6 @@
-package com.neoarkbyte.rutech.service;
+package com.neoarkbyte.rutech.service.impl;
 
 import com.neoarkbyte.rutech.dto.TokenPair;
-import com.neoarkbyte.rutech.dto.auth.TokenRefreshDTO;
 import com.neoarkbyte.rutech.dto.auth.UserCreateDTO;
 import com.neoarkbyte.rutech.dto.auth.UserLoginDTO;
 import com.neoarkbyte.rutech.entity.*;
@@ -13,7 +12,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import jakarta.validation.Valid;
 
 
 @Service
@@ -50,18 +48,23 @@ public class AuthService {
     }
 
     public TokenPair verify(UserLoginDTO user) {
-        Authentication authentication = authManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUserName(), user.getPassword()));
-        if (authentication.isAuthenticated()) {
-            TokenPair tokenPair = jwtService.generateTokenPair(authentication);
-            return tokenPair;
+
+        Authentication authentication = authManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        user.getUserName(),
+                        user.getPassword()
+                )
+        );
+
+        if (!authentication.isAuthenticated()) {
+            throw new RuntimeException("Invalid credentials");
         }
 
-        return null;
+        return jwtService.generateTokenPair(authentication);
     }
 
-    public TokenPair refreshToken(@Valid TokenRefreshDTO dto) {
+    public TokenPair refreshToken(String refreshToken) {
 
-        String refreshToken = dto.getRefreshToken();
         if(!jwtService.isRefreshToken(refreshToken)) {
             throw new IllegalArgumentException("Invalid refresh token");
         }

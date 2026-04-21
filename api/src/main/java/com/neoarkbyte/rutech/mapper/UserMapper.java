@@ -1,11 +1,16 @@
 package com.neoarkbyte.rutech.mapper;
 
-import com.neoarkbyte.rutech.dto.auth.UserCreateDTO;
+import com.neoarkbyte.rutech.dto.auth.*;
 import com.neoarkbyte.rutech.entity.BatchRep;
 import com.neoarkbyte.rutech.entity.Lecturer;
 import com.neoarkbyte.rutech.entity.Organization;
-import org.mapstruct.*;
+import com.neoarkbyte.rutech.entity.User;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.Named;
 
+import java.util.List;
 import java.util.Map;
 
 @Mapper(componentModel = "spring")
@@ -28,4 +33,17 @@ public interface UserMapper {
     default <K, V> Map<K, V> mapDictionary(Map<K, V> map) {
         return map;
     }
+
+    UserResponseDTO toResponseDTO(User user);
+    List<UserResponseDTO> toResponseDTOs(List<User> users);
+
+    BatchRepResponseDTO toBatchRepResponseDTO(BatchRep rep);
+    List<BatchRepResponseDTO> toBatchRepResponseDTOs(List<BatchRep> reps);
+
+    OrgResponseDTO toOrgResponseDTO(Organization org);
+    List<OrgResponseDTO> toOrgResponseDTOs(List<Organization> orgs);
+
+    LecResponseDTO toLecResponseDTO(Lecturer lec);
+    List<LecResponseDTO> toLecResponseDTOs(List<Lecturer> lecs);
+
 }

@@ -15,8 +15,14 @@ import java.util.Map;
 @EqualsAndHashCode(callSuper = true)
 public class Organization extends User {
 
-    private String organizationType;
-
     @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> committee;
+
+    private String mission;
+
+    private String vision;
+
+    private String history;
+
+    private String orgUrl;
 }

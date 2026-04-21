@@ -1,5 +1,6 @@
 package com.neoarkbyte.rutech.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.neoarkbyte.rutech.util.Utils;
 import com.neoarkbyte.rutech.type.ROLE;
 import jakarta.persistence.*;
@@ -27,6 +28,7 @@ public class User {
     @Column(unique = true)
     private String email;
 
+    @JsonIgnore
     private String password;
 
     private String telephone;

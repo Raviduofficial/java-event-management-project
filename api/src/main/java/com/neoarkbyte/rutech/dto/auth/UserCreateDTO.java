@@ -25,6 +25,9 @@ public class UserCreateDTO {
     private Integer year;
 
     // Organization
-    private String organizationType;
     private Map<String, Object> committee;
+    private String mission;
+    private String vision;
+    private String history;
+    private String orgUrl;
 }
