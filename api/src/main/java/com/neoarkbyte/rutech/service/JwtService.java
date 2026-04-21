@@ -16,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.SecretKey;
 import java.time.Instant;
@@ -104,6 +105,13 @@ public class JwtService {
         return true;
     }
 
+    @Transactional
+    public void revokeAllRefreshTokensByUserId(Authentication authentication) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        User user = userPrincipal.getUser();
+        refreshTokenRepository.deleteByUser(user);
+    }
+
     private String generateToken(Authentication authentication, long expirationInMs, Map<String, String> claims) {
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
 
@@ -173,7 +181,12 @@ public class JwtService {
 
     public String extractRoleFromToken(String token) {
         Claims claims = extractAllClaims(token);
-        return claims.get("role", String.class);
+
+        if(claims != null) {
+            return claims.get("role", String.class);
+        }
+
+        return null;
     }
 
     private Claims extractAllClaims(String token) {

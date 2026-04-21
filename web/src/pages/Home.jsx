@@ -1,17 +1,23 @@
 import React, { useEffect } from 'react';
-import { 
-  Search, Calendar, MapPin, Filter, 
+import {
+  Search, Calendar, MapPin, Filter,
   ChevronLeft, ChevronRight, Clock
 } from 'lucide-react';
+import api from '../api/axiosConfig';
 
 const Home = () => {
 
-   useEffect(() => {
-    // Simple fetch request
-    fetch('http://localhost:8080/test-json')
-      .then((response) => response.json()) // Parse JSON
-      .then((data) => console.log('Fetched data:', data)) // Log data
-      .catch((error) => console.error('Error:', error)); // Handle errors
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await api.get("/api/auth/me", { withCredentials: true });
+        console.log(response.data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchData();
   }, []);
 
   // ඉස්සරහට Backend එකෙන් එන Data මේ විදියට තමයි තියාගන්නේ
@@ -46,7 +52,7 @@ const Home = () => {
 
   return (
     <div className="bg-[#f8fafc] font-sans text-left">
-      
+
       {/* Navbar එක App.jsx එකෙන් එනවා */}
 
       <main className="max-w-7xl mx-auto p-8 mt-4">
@@ -68,22 +74,22 @@ const Home = () => {
                 <ChevronRight size={20} className="cursor-pointer hover:text-emerald-500" />
               </div>
             </div>
-            
+
             {/* Simple Calendar Grid */}
             <div className="grid grid-cols-7 gap-2 text-center text-xs text-gray-400 font-bold mb-4 uppercase tracking-wider">
               <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
             </div>
             <div className="grid grid-cols-7 gap-0 border-t border-l border-gray-100 rounded-lg overflow-hidden h-[300px]">
-               {/* Simplified Days */}
-               {[...Array(31)].map((_, i) => (
-                 <div key={i} className={`p-3 border-r border-b border-gray-100 min-h-[60px] text-right text-sm font-medium text-gray-600
+              {/* Simplified Days */}
+              {[...Array(31)].map((_, i) => (
+                <div key={i} className={`p-3 border-r border-b border-gray-100 min-h-[60px] text-right text-sm font-medium text-gray-600
                     ${i === 23 ? 'bg-gray-50 border-b-4 border-b-[#0e1b35]' : ''} 
                     ${i === 14 ? 'border-4 border-emerald-500 bg-emerald-50/30' : ''}
                     ${i === 3 ? 'border-b-4 border-b-emerald-500' : ''}
                  `}>
-                   {i + 1}
-                 </div>
-               ))}
+                  {i + 1}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -94,25 +100,25 @@ const Home = () => {
               <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-1">Upcoming</p>
               <h3 className="text-4xl font-extrabold text-[#0e1b35]">12</h3>
             </div>
-            
+
             <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm flex-1">
               <h4 className="text-sm font-bold mb-6 flex items-center gap-2 text-[#0e1b35]">
                 <Clock className="text-emerald-500" size={18} /> Today's Schedule
               </h4>
               <div className="space-y-6">
                 <div className="flex gap-4 border-l-2 border-emerald-500 pl-4 py-1">
-                   <div className="text-[11px] font-bold text-gray-500 w-16 pt-0.5">09:00 AM</div>
-                   <div>
-                     <p className="text-sm font-bold text-[#0e1b35]">Research Symposium Day 1</p>
-                     <p className="text-[11px] text-gray-400 mt-1">Auditorium</p>
-                   </div>
+                  <div className="text-[11px] font-bold text-gray-500 w-16 pt-0.5">09:00 AM</div>
+                  <div>
+                    <p className="text-sm font-bold text-[#0e1b35]">Research Symposium Day 1</p>
+                    <p className="text-[11px] text-gray-400 mt-1">Auditorium</p>
+                  </div>
                 </div>
                 <div className="flex gap-4 border-l-2 border-gray-200 pl-4 py-1">
-                   <div className="text-[11px] font-bold text-gray-500 w-16 pt-0.5">02:30 PM</div>
-                   <div>
-                     <p className="text-sm font-bold text-[#0e1b35]">Senate Meeting</p>
-                     <p className="text-[11px] text-gray-400 mt-1">Board Room</p>
-                   </div>
+                  <div className="text-[11px] font-bold text-gray-500 w-16 pt-0.5">02:30 PM</div>
+                  <div>
+                    <p className="text-sm font-bold text-[#0e1b35]">Senate Meeting</p>
+                    <p className="text-[11px] text-gray-400 mt-1">Board Room</p>
+                  </div>
                 </div>
               </div>
               <button className="w-full mt-8 py-3 border border-gray-200 rounded-lg text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-colors">
@@ -151,12 +157,12 @@ const Home = () => {
             {eventData.map((event) => (
               <div key={event.id} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
                 <div className={`h-48 ${event.bgClass} relative flex items-center justify-center p-8`}>
-                   <div className="absolute top-4 left-4 bg-[#0e1b35] text-white text-[9px] font-bold px-3 py-1 rounded-full tracking-widest uppercase shadow-md">
-                     {event.badge}
-                   </div>
-                   <div className="border border-white/20 p-4 text-white/80 text-center rounded-lg backdrop-blur-sm group-hover:scale-105 transition-transform duration-500">
-                      <p className="font-serif text-xl tracking-wider opacity-50">PREVIEW</p>
-                   </div>
+                  <div className="absolute top-4 left-4 bg-[#0e1b35] text-white text-[9px] font-bold px-3 py-1 rounded-full tracking-widest uppercase shadow-md">
+                    {event.badge}
+                  </div>
+                  <div className="border border-white/20 p-4 text-white/80 text-center rounded-lg backdrop-blur-sm group-hover:scale-105 transition-transform duration-500">
+                    <p className="font-serif text-xl tracking-wider opacity-50">PREVIEW</p>
+                  </div>
                 </div>
                 <div className="p-6 flex flex-col flex-1">
                   <h3 className="font-bold text-[#0e1b35] text-lg mb-4 line-clamp-2 leading-tight flex-1">{event.title}</h3>
@@ -174,11 +180,11 @@ const Home = () => {
 
           {/* Pagination */}
           <div className="flex justify-center items-center gap-2 mt-8 mb-12">
-            <button className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"><ChevronLeft size={18}/></button>
+            <button className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"><ChevronLeft size={18} /></button>
             <button className="w-10 h-10 rounded-xl bg-emerald-500 text-white font-bold flex items-center justify-center shadow-md">1</button>
             <button className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 font-medium transition-colors">2</button>
             <button className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50 font-medium transition-colors">3</button>
-            <button className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"><ChevronRight size={18}/></button>
+            <button className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"><ChevronRight size={18} /></button>
           </div>
         </section>
       </main>

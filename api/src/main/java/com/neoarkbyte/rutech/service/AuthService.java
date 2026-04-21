@@ -50,18 +50,23 @@ public class AuthService {
     }
 
     public TokenPair verify(UserLoginDTO user) {
-        Authentication authentication = authManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUserName(), user.getPassword()));
-        if (authentication.isAuthenticated()) {
-            TokenPair tokenPair = jwtService.generateTokenPair(authentication);
-            return tokenPair;
+
+        Authentication authentication = authManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        user.getUserName(),
+                        user.getPassword()
+                )
+        );
+
+        if (!authentication.isAuthenticated()) {
+            throw new RuntimeException("Invalid credentials");
         }
 
-        return null;
+        return jwtService.generateTokenPair(authentication);
     }
 
-    public TokenPair refreshToken(@Valid TokenRefreshDTO dto) {
+    public TokenPair refreshToken(String refreshToken) {
 
-        String refreshToken = dto.getRefreshToken();
         if(!jwtService.isRefreshToken(refreshToken)) {
             throw new IllegalArgumentException("Invalid refresh token");
         }
