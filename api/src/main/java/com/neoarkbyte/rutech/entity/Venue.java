@@ -9,6 +9,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Entity
 @Table(name = "venues")
 @Data
@@ -24,12 +26,18 @@ public class Venue {
 
     private String description;
 
+    private int capacity;
+
     private boolean isBooked;
+
+    private String venueUrl;
+
+    private List<String> facilities;
 
     @PrePersist
     public void generateId() {
         if (venueId == null) {
-            venueId = Utils.generateId("VEN", 6);;
+            venueId = Utils.generateId("VEN", 6);
         }
     }
 }

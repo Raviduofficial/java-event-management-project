@@ -2,14 +2,13 @@ package com.neoarkbyte.rutech.config;
 
 
 import com.neoarkbyte.rutech.filter.JwtAuthFilter;
-import com.neoarkbyte.rutech.service.CustomUserDetailsService;
+import com.neoarkbyte.rutech.service.impl.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -42,11 +41,12 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers(
-                                "/",
-                                "/test-json",
-                                "/api/auth/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/**"
+//                                "/test-json",
+//                                "/api/auth/**",
+//                                "/api/files/**",
+//                                "/swagger-ui/**",
+//                                "/v3/api-docs/**"
                         )
                         .permitAll()
                         .anyRequest().authenticated())
@@ -81,7 +81,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOrigins(List.of("http://localhost:5173"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of(
                 "Authorization",
                 "Content-Type",
@@ -95,7 +95,4 @@ public class SecurityConfig {
 
         return source;
     }
-
-
-
 }

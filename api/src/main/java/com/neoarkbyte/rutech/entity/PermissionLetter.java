@@ -1,10 +1,9 @@
 package com.neoarkbyte.rutech.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.neoarkbyte.rutech.type.STATUS;
 import com.neoarkbyte.rutech.util.Utils;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,12 +23,21 @@ public class PermissionLetter{
 
     private String letterUrl;
 
-    private Boolean isVerified;
+    private STATUS status;
+
+    @ManyToOne
+    @JoinColumn(name = "event_id", unique = false)
+    @JsonBackReference
+    private Event event;
 
     @PrePersist
-    public void generateId() {
+    public void generateFields() {
         if (letterId == null) {
             letterId = Utils.generateId("PL", 6);
+        }
+
+        if (status == null) {
+            status = STATUS.PENDING;
         }
     }
 }
