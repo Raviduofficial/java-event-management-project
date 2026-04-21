@@ -1,7 +1,6 @@
-package com.neoarkbyte.rutech.service;
+package com.neoarkbyte.rutech.service.impl;
 
 import com.neoarkbyte.rutech.dto.TokenPair;
-import com.neoarkbyte.rutech.dto.auth.TokenRefreshDTO;
 import com.neoarkbyte.rutech.dto.auth.UserCreateDTO;
 import com.neoarkbyte.rutech.dto.auth.UserLoginDTO;
 import com.neoarkbyte.rutech.entity.*;
@@ -13,7 +12,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import jakarta.validation.Valid;
 
 
 @Service
