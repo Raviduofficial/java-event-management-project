@@ -18,9 +18,10 @@ const Login = () => {
       console.log(loggedUser);
       console.log(formData);
 
-      // Example role-based navigation
-      if (loggedUser.role === "ROLE_ADMIN_LEC") navigate("/admin-dashboard");
-      else if (loggedUser.role === "ROLE_BATCH_REP") navigate("/coordinator-dashboard");
+      // Role-based navigation
+      if (loggedUser.role === "ROLE_ADMIN_LEC") navigate("/admin/dashboard");
+      else if (loggedUser.role === "ROLE_BATCH_REP" || loggedUser.role === "ROLE_ORGANIZATION") navigate("/coordinator/dashboard");
+      else navigate("/");
 
     } catch (err) {
       console.log(err);
