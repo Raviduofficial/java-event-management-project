@@ -37,7 +37,7 @@ const ManageEvent = () => {
           
           <div className="flex items-center gap-3 w-full md:w-auto">
             <button 
-              onClick={() => navigate('/event-details')}
+              onClick={() => navigate('/events')}
               className="flex-1 md:flex-none bg-white border border-gray-200 text-slate-700 px-6 py-3 rounded-xl text-sm font-bold shadow-sm hover:bg-gray-50 transition-colors"
             >
               Preview Page

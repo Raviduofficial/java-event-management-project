@@ -9,11 +9,10 @@ const Navbar = () => {
   const { user, logout } = useAuth();
 
   // 💡 Roles දෙකම අඳුරගන්නවා
-  const isAdmin = user && user.role === 'admin';
-  const isCoordinator = user && user.role === 'coordinator';
+  const isAdmin = user && user.role === 'ROLE_ADMIN_LEC';
+  const isCoordinator = user && (user.role === 'ROLE_BATCH_REP' || user.role === 'ROLE_ORGANIZATION');
 
-  // කවුද ලොග් වෙලා ඉන්නේ කියන එක අනුව යන Dashboard Path එක තීරණය කරනවා
-  const dashboardPath = isAdmin ? '/admin-dashboard' : (isCoordinator ? '/coordinator-dashboard' : null);
+  const dashboardPath = isAdmin ? '/admin/dashboard' : (isCoordinator ? '/coordinator/dashboard' : null);
 
   const isActive = (path) => location.pathname === path;
 
@@ -58,8 +57,8 @@ const Navbar = () => {
           )}
 
           <button onClick={() => navigate('/events')} className={`hover:text-emerald-600 transition-colors pb-1 border-b-2 ${isActive('/events') ? 'text-emerald-600 border-emerald-500 font-bold' : 'border-transparent'}`}>Events</button>
-          <button onClick={() => navigate('/organizations')} className={`hover:text-emerald-600 transition-colors pb-1 border-b-2 ${isActive('/organizations') || isActive('/organization-overview') ? 'text-emerald-600 border-emerald-500 font-bold' : 'border-transparent'}`}>Organizations</button>
-          <button onClick={() => navigate('/venues')} className={`hover:text-emerald-600 transition-colors pb-1 border-b-2 ${isActive('/venues') || isActive('/add-venue') ? 'text-emerald-600 border-emerald-500 font-bold' : 'border-transparent'}`}>Venues</button>
+          <button onClick={() => navigate('/organizations')} className={`hover:text-emerald-600 transition-colors pb-1 border-b-2 ${location.pathname.startsWith('/organizations') ? 'text-emerald-600 border-emerald-500 font-bold' : 'border-transparent'}`}>Organizations</button>
+          <button onClick={() => navigate('/venues')} className={`hover:text-emerald-600 transition-colors pb-1 border-b-2 ${location.pathname.startsWith('/venues') || location.pathname.startsWith('/admin/venues') ? 'text-emerald-600 border-emerald-500 font-bold' : 'border-transparent'}`}>Venues</button>
           <button onClick={() => navigate('/about')} className={`hover:text-emerald-600 transition-colors pb-1 border-b-2 ${isActive('/about') ? 'text-emerald-600 border-emerald-500 font-bold' : 'border-transparent'}`}>About</button>
         </div>
       </div>

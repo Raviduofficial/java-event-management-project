@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
               refreshPromise = api
                 .post("/api/auth/refresh-token", {}, { withCredentials: true })
                 .then((res) => {
-                  const newToken = res.data.accessToken;
+                  const newToken = res.data.data.accessToken;
                   localStorage.setItem("token", newToken);
                   return newToken;
                 })
@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const response = await api.get("/api/auth/me", { withCredentials: true });
         setIsAuthenticated(true);
-        setUser(response.data);
+        setUser(response.data.data);
       } catch {
         handleLocalLogout();
       } finally {
@@ -105,13 +105,13 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     const res = await api.post("/api/auth/login", credentials, { withCredentials: true });
-    localStorage.setItem("token", res.data.accessToken);
+    localStorage.setItem("token", res.data.data.accessToken);
 
     // Fetch user details after login
     const userRes = await api.get("/api/auth/me", { withCredentials: true });
-    setUser(userRes.data);
+    setUser(userRes.data.data);
     setIsAuthenticated(true);
-    return userRes.data;
+    return userRes.data.data;
   };
 
   const logout = async () => {
