@@ -1,9 +1,12 @@
 package com.neoarkbyte.rutech.repository;
 
+import com.neoarkbyte.rutech.entity.Event;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import com.neoarkbyte.rutech.entity.Event;
+
+import java.util.List;
 
 @Repository
 public interface EventRepository extends JpaRepository<Event, String> {
+    List<Event> findByCoordinatorUserId(String userId);
 }
