@@ -5,8 +5,10 @@ import com.neoarkbyte.rutech.entity.RefreshToken;
 import com.neoarkbyte.rutech.entity.User;
 import com.neoarkbyte.rutech.entity.UserPrincipal;
 import com.neoarkbyte.rutech.repository.RefreshTokenRepository;
-import com.neoarkbyte.rutech.type.TokenType;
-import io.jsonwebtoken.*;
+import com.neoarkbyte.rutech.type.TOKEN;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
@@ -50,7 +52,7 @@ public class JwtService {
     // Generate the access token
     public String generateAccessToken(Authentication authentication) {
         Map<String, String> claims = new HashMap<>();
-        claims.put("tokenType", TokenType.ACCESS.name());
+        claims.put("tokenType", TOKEN.ACCESS.name());
 
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
         String role = userPrincipal.getAuthorities().stream()
@@ -66,7 +68,7 @@ public class JwtService {
     // Generate refresh token
     public String generateRefreshToken(Authentication authentication) {
         Map<String, String> claims = new HashMap<>();
-        claims.put("tokenType", TokenType.REFRESH.name());
+        claims.put("tokenType", TOKEN.REFRESH.name());
 
         String token = generateToken(authentication, refreshExpirationMs, claims);
         addRefreshTokenToDatabase(token, authentication);
@@ -155,7 +157,7 @@ public class JwtService {
         if(claims == null) {
             return false;
         }
-        return TokenType.REFRESH.name().equals(claims.get("tokenType"));
+        return TOKEN.REFRESH.name().equals(claims.get("tokenType"));
     }
 
     public boolean isAccessToken(String token) {
@@ -163,7 +165,7 @@ public class JwtService {
         if(claims == null) {
             return false;
         }
-        return TokenType.ACCESS.name().equals(claims.get("tokenType"));
+        return TOKEN.ACCESS.name().equals(claims.get("tokenType"));
     }
 
     public Date extractExpiration(String token) {
