@@ -57,8 +57,8 @@ const ModifyEvent = () => {
       ]);
       
       const event = eventRes.data.data;
-      if (event.status !== 'APPROVED' && event.status !== 'PENDING') {
-        alert("Only approved or pending events can be modified.");
+      if (event.status !== 'APPROVED') {
+        alert("Only approved events can be modified.");
         navigate('/coordinator/dashboard');
         return;
       }
