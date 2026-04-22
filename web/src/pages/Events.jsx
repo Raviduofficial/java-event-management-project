@@ -17,7 +17,9 @@ const Events = () => {
         const allEvents = response.data.data || [];
         
         // Filter approved events
-        const approvedEvents = allEvents.filter(event => event.status === 'APPROVED');
+        const approvedEvents = allEvents.filter(event => 
+          event.status === 'APPROVED' && event.startTime && event.endTime
+        );
         
         categorizeEvents(approvedEvents);
         setEvents(approvedEvents);
@@ -40,8 +42,8 @@ const Events = () => {
     };
 
     eventsList.forEach(event => {
-      const startTime = new Date(event.startTime.replace(' ', 'T'));
-      const endTime = new Date(event.endTime.replace(' ', 'T'));
+      const startTime = new Date(event.startTime?.replace(' ', 'T') || 0);
+      const endTime = new Date(event.endTime?.replace(' ', 'T') || 0);
 
       if (now < startTime) {
         categories.upcoming.push(event);
@@ -67,7 +69,7 @@ const Events = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
-    const date = new Date(dateString.replace(' ', 'T'));
+    const date = new Date(dateString?.replace(' ', 'T') || 0);
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 

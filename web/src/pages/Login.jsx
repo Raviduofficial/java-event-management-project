@@ -77,9 +77,8 @@ const Login = () => {
 
             {/* Password Input */}
             <div>
-              <div className="flex justify-between items-center mb-2">
+              <div className="mb-2">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Password</label>
-                <a href="#" className="text-[10px] font-bold text-teal-600 hover:text-teal-700">Forgot Password?</a>
               </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-3.5 text-gray-400" size={18} />

@@ -43,6 +43,18 @@ const ModifyEvent = () => {
   const [agendaFile, setAgendaFile] = useState(null);
   const [agendaUploading, setAgendaUploading] = useState(false);
   const agendaInputRef = useRef(null);
+  
+  // Calculate minimum datetime (now) for inputs
+  const getMinDateTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+  const minDateTime = getMinDateTime();
 
   useEffect(() => {
     fetchInitialData();
@@ -183,6 +195,29 @@ const ModifyEvent = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Date Validation
+    const start = new Date(formData.startTime);
+    const end = new Date(formData.endTime);
+    const now = new Date();
+    
+    if (start < now) {
+      alert("Start time cannot be in the past.");
+      return;
+    }
+    
+    if (end <= start) {
+      alert("End time must be after the start time.");
+      return;
+    }
+    
+    // Ensure at least a 30-minute gap
+    const gapMs = end - start;
+    if (gapMs < 30 * 60 * 1000) {
+      alert("Event must be at least 30 minutes long.");
+      return;
+    }
+
     setSaving(true);
     try {
       const uploadedUrl = await uploadImage();
@@ -286,6 +321,7 @@ const ModifyEvent = () => {
                               <Clock className="absolute left-5 top-4.5 text-gray-300" size={16} />
                               <input 
                                 type="datetime-local" name="startTime" value={formData.startTime} onChange={handleInputChange}
+                                min={minDateTime}
                                 className="w-full h-14 pl-14 pr-6 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-700 text-sm outline-none focus:bg-white focus:border-teal-500 transition-all"
                               />
                            </div>
@@ -296,6 +332,7 @@ const ModifyEvent = () => {
                               <Clock className="absolute left-5 top-4.5 text-gray-300" size={16} />
                               <input 
                                 type="datetime-local" name="endTime" value={formData.endTime} onChange={handleInputChange}
+                                min={formData.startTime || minDateTime}
                                 className="w-full h-14 pl-14 pr-6 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-700 text-sm outline-none focus:bg-white focus:border-teal-500 transition-all"
                               />
                            </div>

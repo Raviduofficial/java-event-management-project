@@ -91,6 +91,59 @@ const EventDetails = () => {
     });
   };
 
+  const calculateTotalBudget = (data) => {
+    if (!data) return 0;
+    if (typeof data === 'number') return data;
+    if (typeof data === 'string') return parseFloat(data.replace(/,/g, '')) || 0;
+    if (Array.isArray(data)) {
+      return data.reduce((sum, item) => sum + calculateTotalBudget(item), 0);
+    }
+    if (typeof data === 'object') {
+      return Object.values(data).reduce((sum, item) => sum + calculateTotalBudget(item), 0);
+    }
+    return 0;
+  };
+
+  const renderBudgetRows = (data, level = 0) => {
+    if (!data || typeof data !== 'object') return null;
+
+    return Object.entries(data).map(([key, val], idx) => {
+      const isObject = typeof val === 'object' && val !== null && !Array.isArray(val);
+      
+      if (isObject) {
+        const subTotal = calculateTotalBudget(val);
+        return (
+          <React.Fragment key={`${level}-${key}-${idx}`}>
+            <tr className="bg-slate-50/50 border-t border-gray-200/60">
+              <td className="px-6 py-4 font-black text-slate-800 uppercase tracking-widest text-[10px]" style={{ paddingLeft: `${level * 1.5 + 1.5}rem` }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-teal-500"></div>
+                  {key.replace(/([A-Z])/g, ' $1').trim()}
+                </div>
+              </td>
+              <td className="px-6 py-4 font-black text-slate-900 text-right text-xs">
+                LKR {subTotal.toLocaleString()}
+              </td>
+            </tr>
+            {renderBudgetRows(val, level + 1)}
+          </React.Fragment>
+        );
+      } else {
+        const amount = calculateTotalBudget(val);
+        return (
+          <tr key={`${level}-${key}-${idx}`} className="hover:bg-slate-50/50 transition-colors">
+            <td className="px-6 py-4 font-bold text-slate-700 capitalize" style={{ paddingLeft: `${level * 1.5 + 2.5}rem` }}>
+              {key.replace(/([A-Z])/g, ' $1').trim()}
+            </td>
+            <td className="px-6 py-4 font-black text-teal-600 text-right">
+              {amount.toLocaleString()}
+            </td>
+          </tr>
+        );
+      }
+    });
+  };
+
   return (
     <div className="bg-[#f8fafc] font-sans text-left min-h-screen pb-20">
       <main className="max-w-7xl mx-auto p-8 mt-4">
@@ -251,18 +304,16 @@ const EventDetails = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                          {Object.entries(event.budgetReport).map(([cat, val], idx) => (
-                            <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-6 py-4 font-bold text-slate-700 capitalize">{cat}</td>
-                              <td className="px-6 py-4 font-black text-teal-600 text-right">
-                                {Number(val).toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                          <tr className="bg-teal-50/30">
-                            <td className="px-6 py-4 font-black text-[#0b1120] uppercase tracking-tighter">Total Estimated Budget</td>
-                            <td className="px-6 py-4 font-black text-[#0b1120] text-right text-lg">
-                              LKR {Object.values(event.budgetReport).reduce((a, b) => Number(a) + Number(b), 0).toLocaleString()}
+                          {renderBudgetRows(event.budgetReport)}
+                          <tr className="bg-teal-50/40 border-t-2 border-teal-100">
+                            <td className="px-6 py-5 font-black text-[#0b1120] uppercase tracking-tighter flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center">
+                                <BanknoteIcon size={16} />
+                              </div>
+                              Total Estimated Budget
+                            </td>
+                            <td className="px-6 py-5 font-black text-[#0b1120] text-right text-lg">
+                              LKR {calculateTotalBudget(event.budgetReport).toLocaleString()}
                             </td>
                           </tr>
                         </tbody>

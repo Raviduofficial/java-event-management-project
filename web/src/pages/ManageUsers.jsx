@@ -464,19 +464,19 @@ const ManageUsers = () => {
                       placeholder="e.g. johndoe_99"
                     />
                   </div>
-                  {!editingUser && (
-                    <div className="group">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block px-1 group-focus-within:text-slate-900 transition-colors">Password <span className="text-red-500">*</span></label>
-                      <div className="relative">
-                        <Key size={18} className="absolute left-7 top-5.5 text-slate-400" />
-                        <input 
-                          type="password" name="password" value={formData.password} onChange={handleInputChange} required
-                          className="w-full h-16 pl-16 pr-8 bg-slate-100 border-2 border-slate-200 rounded-[2rem] outline-none focus:bg-white focus:border-slate-800 transition-all font-bold text-slate-900 text-lg shadow-sm"
-                          placeholder="••••••••"
-                        />
-                      </div>
+                  <div className="group">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block px-1 group-focus-within:text-slate-900 transition-colors">
+                      {editingUser ? 'Reset Password (Optional)' : 'Password'} {!editingUser && <span className="text-red-500">*</span>}
+                    </label>
+                    <div className="relative">
+                      <Key size={18} className="absolute left-7 top-5.5 text-slate-400" />
+                      <input 
+                        type="password" name="password" value={formData.password} onChange={handleInputChange} required={!editingUser}
+                        className="w-full h-16 pl-16 pr-8 bg-slate-100 border-2 border-slate-200 rounded-[2rem] outline-none focus:bg-white focus:border-slate-800 transition-all font-bold text-slate-900 text-lg shadow-sm"
+                        placeholder={editingUser ? "Leave blank to keep unchanged" : "••••••••"}
+                      />
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 <div className="space-y-10">
