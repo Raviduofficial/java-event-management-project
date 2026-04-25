@@ -13,7 +13,7 @@ const AddVenue = () => {
     description: '',
     venueUrl: '',
     facilities: '',
-    isBooked: false
+    booked: false
   });
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -107,7 +107,7 @@ const AddVenue = () => {
         description: formData.description,
         venueUrl: uploadedUrl,
         facilities: formData.facilities.split(',').map(f => f.trim()).filter(Boolean),
-        isBooked: formData.isBooked
+        booked: formData.booked
       };
 
       if (editId) {
@@ -116,7 +116,7 @@ const AddVenue = () => {
         await api.post('/api/venues', payload, { withCredentials: true });
       }
 
-      setFormData({ name: '', location: '', capacity: '', description: '', venueUrl: '', facilities: '', isBooked: false });
+      setFormData({ name: '', location: '', capacity: '', description: '', venueUrl: '', facilities: '', booked: false });
       setEditId(null);
       clearImage();
       fetchVenues();
@@ -143,7 +143,7 @@ const AddVenue = () => {
       description: desc,
       venueUrl: venue.venueUrl || '',
       facilities: venue.facilities ? venue.facilities.join(', ') : '',
-      isBooked: venue.isBooked
+      booked: venue.booked
     });
     // Show existing image as preview
     if (venue.venueUrl) {
@@ -166,14 +166,14 @@ const AddVenue = () => {
 
   const handleCancelEdit = () => {
     setEditId(null);
-    setFormData({ name: '', location: '', capacity: '', description: '', venueUrl: '', facilities: '', isBooked: false });
+    setFormData({ name: '', location: '', capacity: '', description: '', venueUrl: '', facilities: '', booked: false });
     clearImage();
   };
 
   return (
     <div className="bg-[#fafafa] font-sans text-left min-h-screen pb-20">
       <main className="max-w-7xl mx-auto p-8 mt-4">
-        
+
         <div className="mb-10">
           <h1 className="text-4xl font-extrabold text-[#1a1a1a] mb-3 tracking-tight">Venue Management</h1>
           <p className="text-gray-600 text-sm max-w-2xl leading-relaxed">
@@ -182,7 +182,7 @@ const AddVenue = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          
+
           {/* Form Column */}
           <div className="lg:col-span-1 space-y-6">
             <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
@@ -247,11 +247,11 @@ const AddVenue = () => {
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-2">Status</label>
                   <div className="flex items-center h-[46px] gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 cursor-pointer"
-                    onClick={() => setFormData(p => ({...p, isBooked: !p.isBooked}))}>
-                    <div className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${formData.isBooked ? 'bg-red-500 border-red-500' : 'bg-white border-gray-300'}`}>
-                      {formData.isBooked && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                    onClick={() => setFormData(p => ({ ...p, booked: !p.booked }))}>
+                    <div className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${formData.booked ? 'bg-red-500 border-red-500' : 'bg-white border-gray-300'}`}>
+                      {formData.booked && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                     </div>
-                    <span className="text-xs font-semibold text-slate-700">{formData.isBooked ? 'Booked' : 'Available'}</span>
+                    <span className="text-xs font-semibold text-slate-700">{formData.booked ? 'Booked' : 'Available'}</span>
                   </div>
                 </div>
               </div>
@@ -290,7 +290,7 @@ const AddVenue = () => {
               <h2 className="text-lg font-bold text-[#1a1a1a]">Existing Venues</h2>
               <span className="bg-teal-100 text-teal-800 text-xs font-bold px-3 py-1 rounded-full">{venues.length} Total</span>
             </div>
-            
+
             <div className="space-y-4 max-h-[680px] overflow-y-auto pr-2 custom-scrollbar">
               {venues.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm">
@@ -327,8 +327,8 @@ const AddVenue = () => {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-1">
                               <h4 className="font-bold text-slate-800 text-base">{venue.name}</h4>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${venue.isBooked ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                {venue.isBooked ? 'Booked' : 'Available'}
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${venue.booked ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                {venue.booked ? 'Booked' : 'Available'}
                               </span>
                             </div>
                             <p className="text-sm text-gray-500 mb-2 flex items-center gap-4">
@@ -337,13 +337,13 @@ const AddVenue = () => {
                             </p>
                             {venue.facilities && venue.facilities.length > 0 && (
                               <div className="flex flex-wrap gap-1.5">
-                                {venue.facilities.slice(0,3).map((f, idx) => (
+                                {venue.facilities.slice(0, 3).map((f, idx) => (
                                   <span key={idx} className="bg-gray-100 text-gray-600 text-[9px] font-bold px-2 py-1 rounded uppercase tracking-wider">{f}</span>
                                 ))}
                               </div>
                             )}
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             <button onClick={() => handleEdit(venue)}
                               className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors border border-transparent hover:border-teal-200" title="Edit">
@@ -365,8 +365,9 @@ const AddVenue = () => {
 
         </div>
       </main>
-      
-      <style dangerouslySetInnerHTML={{__html: `
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }

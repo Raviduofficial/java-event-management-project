@@ -23,7 +23,6 @@ public class EventResponseDTO {
 
     private Map<String, Object> budgetReport;
     private Map<String, Object> sponsorships;
-    private Map<String, Object> marketing;
     private Map<String, Object> committee;
 
     private User coordinator;
