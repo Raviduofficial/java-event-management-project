@@ -184,7 +184,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-6 max-h-[68vh] overflow-y-auto pr-2">
                 {(() => {
                   const filteredEvents = events.filter(event => event.status === activeTab);
 

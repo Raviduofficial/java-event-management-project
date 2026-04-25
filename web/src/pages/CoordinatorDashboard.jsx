@@ -227,7 +227,7 @@ const CoordinatorDashboard = () => {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[68vh] overflow-y-auto pr-2">
               {filteredEvents.length > 0 ? filteredEvents.map((event) => (
                 <div key={event.eventId} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden hover:border-teal-100 transition-all group">
                   <div className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
