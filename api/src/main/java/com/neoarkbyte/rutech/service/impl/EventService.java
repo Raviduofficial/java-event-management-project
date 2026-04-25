@@ -23,7 +23,6 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final VenueRepository venueRepository;
-    private final LetterRepository letterRepository; // Added
     private final UserRepository userRepository;
     private final EventMapper eventMapper;
 
@@ -87,11 +86,13 @@ public class EventService {
     }
 
     @Transactional
-    public EventResponseDTO rejectEvent(String id) {
+    public EventResponseDTO rejectEvent(String id, String message) {
         Event existingEvent = eventRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Event not found with id: " + id));
 
         existingEvent.setStatus(STATUS.REJECTED);
+        existingEvent.setRejectMessage(message);
+
         return eventMapper.toResponseDTO(existingEvent);
     }
 

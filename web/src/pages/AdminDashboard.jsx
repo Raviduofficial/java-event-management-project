@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Plus, ClipboardList, Users, Search,
   Eye, Pencil, Trash2, Download,
-  BarChart2, ShieldCheck, MapPin, CheckCircle2, XCircle, Clock, FileText, Loader2
+  BarChart2, ShieldCheck, MapPin, CheckCircle2, XCircle, X, Clock, FileText, Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
@@ -15,6 +15,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('PENDING'); // PENDING, APPROVED, REJECTED
+  const [rejectModal, setRejectModal] = useState({ open: false, type: 'event', id: null, eventId: null, message: '' });
+  const [processingReject, setProcessingReject] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,12 +53,44 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleRejectEvent = async (id) => {
+  const openRejectModal = (type, id, eventId = null) => {
+    setRejectModal({ open: true, type, id, eventId, message: '' });
+  };
+
+  const closeRejectModal = () => {
+    if (processingReject) return;
+    setRejectModal({ open: false, type: 'event', id: null, eventId: null, message: '' });
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!rejectModal.message.trim()) {
+      alert('Please provide a rejection message.');
+      return;
+    }
+
+    setProcessingReject(true);
     try {
-      await api.patch(`/api/events/${id}/rejected`);
-      setEvents(events.map(e => e.eventId === id ? { ...e, status: 'REJECTED' } : e));
+      if (rejectModal.type === 'event') {
+        await api.patch(`/api/events/${rejectModal.id}/rejected`, { message: rejectModal.message });
+        setEvents(events.map(e => e.eventId === rejectModal.id ? { ...e, status: 'REJECTED', rejectMessage: rejectModal.message } : e));
+      } else {
+        await api.patch(`/api/letters/${rejectModal.id}/rejected`, { message: rejectModal.message });
+        setEvents(events.map(e => {
+          if (e.eventId === rejectModal.eventId) {
+            return {
+              ...e,
+              permissionLetters: e.permissionLetters.map(l => l.letterId === rejectModal.id ? { ...l, status: 'REJECTED', rejectMessage: rejectModal.message } : l)
+            };
+          }
+          return e;
+        }));
+      }
+      closeRejectModal();
     } catch (error) {
-      console.error("Error rejecting event:", error);
+      console.error("Error submitting rejection:", error);
+      alert('Failed to reject. Please try again.');
+    } finally {
+      setProcessingReject(false);
     }
   };
 
@@ -74,23 +108,6 @@ const AdminDashboard = () => {
       }));
     } catch (error) {
       console.error("Error approving letter:", error);
-    }
-  };
-
-  const handleRejectLetter = async (id, eventId) => {
-    try {
-      await api.patch(`/api/letters/${id}/rejected`);
-      setEvents(events.map(e => {
-        if (e.eventId === eventId) {
-          return {
-            ...e,
-            permissionLetters: e.permissionLetters.map(l => l.letterId === id ? { ...l, status: 'REJECTED' } : l)
-          };
-        }
-        return e;
-      }));
-    } catch (error) {
-      console.error("Error rejecting letter:", error);
     }
   };
 
@@ -212,6 +229,11 @@ const AdminDashboard = () => {
                                 {event.status}
                               </span>
                             </div>
+                            {event.status === 'REJECTED' && event.rejectMessage && (
+                              <p className="mt-3 text-[10px] text-red-600 font-medium leading-relaxed bg-red-50 border border-red-100 rounded-2xl p-3">
+                                {event.rejectMessage}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-2 w-full md:w-auto justify-end">
@@ -226,7 +248,7 @@ const AdminDashboard = () => {
                           {event.status === 'PENDING' && (
                             <div className="flex items-center gap-2 ml-2 pl-4 border-l border-gray-100">
                               <button
-                                onClick={() => handleRejectEvent(event.eventId)}
+                                onClick={() => openRejectModal('event', event.eventId)}
                                 className="bg-white border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-xl text-xs font-bold transition-all"
                               >
                                 Reject
@@ -260,6 +282,11 @@ const AdminDashboard = () => {
                                     }`}>
                                     {letter.status}
                                   </span>
+                                  {letter.status === 'REJECTED' && letter.rejectMessage && (
+                                    <p className="mt-3 text-[10px] text-red-600 font-medium leading-relaxed bg-red-50 border border-red-100 rounded-2xl p-3">
+                                      {letter.rejectMessage}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
@@ -273,7 +300,7 @@ const AdminDashboard = () => {
                                 {letter.status === 'PENDING' && (
                                   <div className="flex items-center gap-2 border-l border-slate-200 ml-2 pl-2">
                                     <button
-                                      onClick={() => handleRejectLetter(letter.letterId, event.eventId)}
+                                      onClick={() => openRejectModal('letter', letter.letterId, event.eventId)}
                                       className="bg-white border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all"
                                     >
                                       Reject
@@ -429,6 +456,57 @@ const AdminDashboard = () => {
           </div>
         </div>
       </main>
+
+      {rejectModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-sm font-sans">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <header className="px-8 py-6 flex items-start justify-between border-b border-slate-200">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400 mb-2">Rejection message</p>
+                <h3 className="text-2xl font-bold text-slate-900">Reject {rejectModal.type === 'event' ? 'Event' : 'Permission Letter'}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={closeRejectModal}
+                className="w-12 h-12 rounded-3xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all flex items-center justify-center"
+              >
+                <X size={20} />
+              </button>
+            </header>
+
+            <div className="p-8 space-y-6">
+              <div>
+                <label className="text-xs font-black uppercase tracking-[0.25em] text-slate-500 mb-2 block">Message</label>
+                <textarea
+                  value={rejectModal.message}
+                  onChange={(e) => setRejectModal(prev => ({ ...prev, message: e.target.value }))}
+                  rows={6}
+                  className="w-full min-h-[160px] resize-none rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-medium text-slate-900 outline-none focus:border-teal-500 focus:bg-white transition-all"
+                  placeholder="Explain why this event or letter is rejected..."
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={closeRejectModal}
+                  className="w-full sm:w-auto px-6 py-3 rounded-3xl text-sm font-bold uppercase tracking-widest text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRejectSubmit}
+                  disabled={processingReject}
+                  className="w-full sm:w-auto px-6 py-3 rounded-3xl text-sm font-bold uppercase tracking-widest text-white bg-red-600 hover:bg-red-700 transition-all disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {processingReject ? 'Rejecting…' : 'Reject Now'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

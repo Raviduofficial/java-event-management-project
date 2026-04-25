@@ -250,6 +250,11 @@ const CoordinatorDashboard = () => {
                             {event.status}
                           </span>
                         </div>
+                        {event.status === 'REJECTED' && event.rejectMessage && (
+                          <p className="mt-3 text-[10px] text-red-600 font-medium leading-relaxed bg-red-50 border border-red-100 rounded-2xl p-3">
+                            {event.rejectMessage}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -297,6 +302,11 @@ const CoordinatorDashboard = () => {
                                 }`}>
                                 {letter.status}
                               </span>
+                              {letter.status === 'REJECTED' && letter.rejectMessage && (
+                                <p className="mt-3 text-[10px] text-red-600 font-medium leading-relaxed bg-red-50 border border-red-100 rounded-2xl p-3">
+                                  {letter.rejectMessage}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">

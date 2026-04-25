@@ -44,4 +44,6 @@ public class EventResponseDTO {
     private LocalDateTime updatedAt;
 
     private STATUS status;
+
+    private String rejectMessage;
 }
