@@ -25,6 +25,7 @@ const AddVenue = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageUploading, setImageUploading] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -48,6 +49,7 @@ const AddVenue = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    setFormErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
   const handleImageSelect = (file) => {
@@ -77,7 +79,40 @@ const AddVenue = () => {
     setImageFile(null);
     setImagePreview(null);
     setFormData(prev => ({ ...prev, venueUrl: '' }));
+    setFormErrors((prev) => ({ ...prev, venueUrl: undefined }));
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.name.trim()) {
+      errors.name = 'Venue name is required.';
+    }
+
+    if (!formData.location.trim()) {
+      errors.location = 'Venue location is required.';
+    }
+
+    if (!formData.capacity.trim()) {
+      errors.capacity = 'Venue capacity is required.';
+    } else if (!/^[0-9]+$/.test(formData.capacity.trim()) || Number(formData.capacity) <= 0) {
+      errors.capacity = 'Capacity must be a positive number.';
+    }
+
+    if (!formData.description.trim()) {
+      errors.description = 'Venue description is required.';
+    }
+
+    if (!formData.facilities.trim()) {
+      errors.facilities = 'Enter at least one facility.';
+    }
+
+    if (imageFile && imageFile.size > 5 * 1024 * 1024) {
+      errors.venueUrl = 'Image must be smaller than 5MB.';
+    }
+
+    return errors;
   };
 
   const uploadImage = async () => {
@@ -103,6 +138,14 @@ const AddVenue = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const errors = validateForm();
+    if (Object.keys(errors).length) {
+      setFormErrors(errors);
+      toastError('Please fix the highlighted fields before saving.');
+      return;
+    }
+
     setLoading(true);
     try {
       const uploadedUrl = await uploadImage();
@@ -259,25 +302,29 @@ const AddVenue = () => {
                   onChange={handleFileInputChange}
                   className="hidden"
                 />
+                {formErrors.venueUrl && <p className="mt-2 text-xs text-red-600">{formErrors.venueUrl}</p>}
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-2">Venue Name</label>
                 <input type="text" name="name" value={formData.name} onChange={handleInputChange} required placeholder="e.g. Main Auditorium"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all" />
+                  className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all ${formErrors.name ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+                {formErrors.name && <p className="mt-2 text-xs text-red-600">{formErrors.name}</p>}
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-2">Location</label>
                 <input type="text" name="location" value={formData.location} onChange={handleInputChange} required placeholder="e.g. Faculty of Science"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all" />
+                  className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all ${formErrors.location ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+                {formErrors.location && <p className="mt-2 text-xs text-red-600">{formErrors.location}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-2">Capacity</label>
                   <input type="number" name="capacity" value={formData.capacity} onChange={handleInputChange} required placeholder="e.g. 500"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all" />
+                    className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all ${formErrors.capacity ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+                  {formErrors.capacity && <p className="mt-2 text-xs text-red-600">{formErrors.capacity}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-2">Status</label>
@@ -294,14 +341,16 @@ const AddVenue = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-2">Facilities (Comma Separated)</label>
                 <input type="text" name="facilities" value={formData.facilities} onChange={handleInputChange} placeholder="WiFi, Projector, AC..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all" />
+                  className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all ${formErrors.facilities ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+                {formErrors.facilities && <p className="mt-2 text-xs text-red-600">{formErrors.facilities}</p>}
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-2">Description</label>
                 <textarea name="description" value={formData.description} onChange={handleInputChange} required
                   placeholder="Brief description of the venue..." rows={3}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all resize-none" />
+                  className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all resize-none ${formErrors.description ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+                {formErrors.description && <p className="mt-2 text-xs text-red-600">{formErrors.description}</p>}
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">

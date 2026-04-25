@@ -26,11 +26,13 @@ const AddEvent = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
   const fileInputRef = useRef(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
   const handleImageSelect = (file) => {
@@ -52,6 +54,28 @@ const AddEvent = () => {
   const handleDragOver = (e) => {
     e.preventDefault();
     setDragOver(true);
+  };
+
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.title.trim()) {
+      errors.title = 'Title is required.';
+    } else if (formData.title.trim().length < 5) {
+      errors.title = 'Title should be at least 5 characters.';
+    }
+
+    if (!formData.about.trim()) {
+      errors.about = 'Provide a clear event description.';
+    } else if (formData.about.trim().length < 15) {
+      errors.about = 'Description should be more detailed.';
+    }
+
+    if (imageFile && imageFile.size > 5 * 1024 * 1024) {
+      errors.eventUrl = 'Image size must be under 5MB.';
+    }
+
+    return errors;
   };
 
   const handleDragLeave = () => setDragOver(false);
@@ -85,7 +109,14 @@ const AddEvent = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!user?.userId) return;
-    
+
+    const errors = validateForm();
+    if (Object.keys(errors).length) {
+      setFormErrors(errors);
+      toastError(Object.values(errors)[0]);
+      return;
+    }
+
     setLoading(true);
     try {
       let uploadedUrl = '';
@@ -147,8 +178,9 @@ const AddEvent = () => {
                   <input 
                     type="text" name="title" value={formData.title} onChange={handleInputChange} required
                     placeholder="e.g. Annual Tech Symposium 2024" 
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-500 transition-all font-medium text-sm"
+                    className={`w-full bg-gray-50 border rounded-xl px-5 py-4 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-500 transition-all font-medium text-sm ${formErrors.title ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                   />
+                  {formErrors.title && <p className="mt-2 text-xs text-red-600">{formErrors.title}</p>}
                 </div>
 
                 <div>
@@ -156,8 +188,9 @@ const AddEvent = () => {
                   <textarea 
                     name="about" value={formData.about} onChange={handleInputChange} required rows={6}
                     placeholder="Describe the purpose and vision of this event..." 
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-500 transition-all resize-none font-medium text-sm leading-relaxed"
+                    className={`w-full bg-gray-50 border rounded-xl px-5 py-4 text-slate-900 focus:outline-none focus:bg-white focus:border-teal-500 transition-all resize-none font-medium text-sm leading-relaxed ${formErrors.about ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                   />
+                  {formErrors.about && <p className="mt-2 text-xs text-red-600">{formErrors.about}</p>}
                 </div>
 
                 {/* Banner Upload Zone - Similar to AddVenue */}

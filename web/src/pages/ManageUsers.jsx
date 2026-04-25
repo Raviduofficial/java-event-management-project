@@ -52,6 +52,7 @@ const ManageUsers = () => {
   };
 
   const [formData, setFormData] = useState(initialFormState);
+  const [formErrors, setFormErrors] = useState({});
 
   // Deep Toned Premium Palette
   const tabs = [
@@ -92,6 +93,10 @@ const ManageUsers = () => {
 
   const currentTab = tabs.find(t => t.id === activeTab);
 
+  const baseInputClass = "w-full h-16 px-8 bg-slate-100 border-2 border-slate-200 rounded-[2rem] outline-none focus:bg-white focus:border-slate-800 transition-all font-bold text-slate-900 text-lg shadow-sm";
+  const baseTextareaClass = "w-full px-10 py-8 bg-slate-100 border-2 border-slate-200 rounded-[2rem] outline-none focus:bg-white focus:border-slate-800 transition-all text-base font-bold text-slate-900 shadow-sm resize-none";
+  const errorBorder = "border-red-500 bg-red-50";
+
   useEffect(() => {
     fetchUsers(activeTab);
   }, [activeTab]);
@@ -115,6 +120,7 @@ const ManageUsers = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setFormErrors(prev => ({ ...prev, [name]: undefined }));
   };
 
   const handleImageSelect = (e) => {
@@ -122,13 +128,85 @@ const ManageUsers = () => {
     if (!file || !file.type.startsWith('image/')) return;
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+    setFormErrors(prev => ({ ...prev, orgUrl: undefined }));
   };
 
   const clearImage = () => {
     setImageFile(null);
     setImagePreview(null);
     setFormData(prev => ({ ...prev, orgUrl: '' }));
+    setFormErrors(prev => ({ ...prev, orgUrl: undefined }));
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const validateUserForm = () => {
+    const errors = {};
+    const trim = (value) => (typeof value === 'string' ? value.trim() : '');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^\+?\d[\d\s-]{6,}$/;
+
+    if (!trim(formData.name)) {
+      errors.name = 'Full name is required.';
+    }
+    if (!trim(formData.userName)) {
+      errors.userName = 'Username is required.';
+    }
+    if (!editingUser && !trim(formData.password)) {
+      errors.password = 'Password is required for new users.';
+    }
+    if (!trim(formData.email)) {
+      errors.email = 'Email address is required.';
+    } else if (!emailRegex.test(formData.email)) {
+      errors.email = 'Enter a valid email address.';
+    }
+    if (!trim(formData.telephone)) {
+      errors.telephone = 'Phone number is required.';
+    } else if (!phoneRegex.test(formData.telephone)) {
+      errors.telephone = 'Enter a valid phone number.';
+    }
+    if (!trim(formData.address)) {
+      errors.address = 'Postal address is required.';
+    }
+
+    if (activeTab === 'ADMIN_LEC') {
+      if (!trim(formData.department)) {
+        errors.department = 'Department is required.';
+      }
+      if (!trim(formData.specialization)) {
+        errors.specialization = 'Specialization is required.';
+      }
+    }
+
+    if (activeTab === 'BATCH_REP') {
+      if (!trim(formData.batchName)) {
+        errors.batchName = 'Batch name is required.';
+      }
+      if (!trim(formData.year)) {
+        errors.year = 'Academic year is required.';
+      } else if (Number(formData.year) <= 0) {
+        errors.year = 'Enter a valid year.';
+      }
+    }
+
+    if (activeTab === 'ORGANIZATION') {
+      if (!formData.committee || Object.keys(formData.committee).length === 0) {
+        errors.committee = 'Committee structure is required.';
+      }
+      if (!trim(formData.mission)) {
+        errors.mission = 'Mission statement is required.';
+      }
+      if (!trim(formData.vision)) {
+        errors.vision = 'Strategic vision is required.';
+      }
+      if (!trim(formData.history)) {
+        errors.history = 'Organization history is required.';
+      }
+      if (!formData.orgUrl && !imagePreview) {
+        errors.orgUrl = 'Organization image is required.';
+      }
+    }
+
+    return errors;
   };
 
   const openConfirmModal = ({ title, description, confirmText, action }) => {
@@ -177,12 +255,14 @@ const ManageUsers = () => {
   const openAddModal = () => {
     setEditingUser(null);
     setFormData({ ...initialFormState, role: activeTab });
+    setFormErrors({});
     clearImage();
     setIsModalOpen(true);
   };
 
   const openEditModal = (user) => {
     setEditingUser(user);
+    setFormErrors({});
     const mappedData = {
       ...initialFormState,
       userId: user.userId,
@@ -216,6 +296,14 @@ const ManageUsers = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const errors = validateUserForm();
+    if (Object.keys(errors).length) {
+      setFormErrors(errors);
+      toastError('Please fix the highlighted fields before submitting.');
+      return;
+    }
+
     setFormLoading(true);
     try {
       let uploadedUrl = formData.orgUrl;
@@ -476,6 +564,7 @@ const ManageUsers = () => {
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
                   </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-6">Upload Profile Image</p>
+                    {formErrors.orgUrl && <p className="mt-2 text-xs text-red-600">{formErrors.orgUrl}</p>}
                 </div>
               )}
 
@@ -486,17 +575,19 @@ const ManageUsers = () => {
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block px-1 group-focus-within:text-slate-900 transition-colors">Full Name <span className="text-red-500">*</span></label>
                     <input 
                       type="text" name="name" value={formData.name} onChange={handleInputChange} required
-                      className="w-full h-16 px-8 bg-slate-100 border-2 border-slate-200 rounded-[2rem] outline-none focus:bg-white focus:border-slate-800 transition-all font-bold text-slate-900 text-lg shadow-sm"
+                      className={`${baseInputClass} ${formErrors.name ? errorBorder : ''}`}
                       placeholder="e.g. John Doe"
                     />
+                    {formErrors.name && <p className="mt-2 text-xs text-red-600">{formErrors.name}</p>}
                   </div>
                   <div className="group">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block px-1 group-focus-within:text-slate-900 transition-colors">Username <span className="text-red-500">*</span></label>
                     <input 
                       type="text" name="userName" value={formData.userName} onChange={handleInputChange} required
-                      className="w-full h-16 px-8 bg-slate-100 border-2 border-slate-200 rounded-[2rem] outline-none focus:bg-white focus:border-slate-800 transition-all font-bold text-slate-900 text-lg shadow-sm"
+                      className={`${baseInputClass} ${formErrors.userName ? errorBorder : ''}`}
                       placeholder="e.g. johndoe_99"
                     />
+                    {formErrors.userName && <p className="mt-2 text-xs text-red-600">{formErrors.userName}</p>}
                   </div>
                   <div className="group">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block px-1 group-focus-within:text-slate-900 transition-colors">
@@ -506,9 +597,10 @@ const ManageUsers = () => {
                       <Key size={18} className="absolute left-7 top-5.5 text-slate-400" />
                       <input 
                         type="password" name="password" value={formData.password} onChange={handleInputChange} required={!editingUser}
-                        className="w-full h-16 pl-16 pr-8 bg-slate-100 border-2 border-slate-200 rounded-[2rem] outline-none focus:bg-white focus:border-slate-800 transition-all font-bold text-slate-900 text-lg shadow-sm"
+                        className={`${baseInputClass} pl-16 pr-8 ${formErrors.password ? errorBorder : ''}`}
                         placeholder={editingUser ? "Leave blank to keep unchanged" : "••••••••"}
                       />
+                      {formErrors.password && <p className="mt-2 text-xs text-red-600">{formErrors.password}</p>}
                     </div>
                   </div>
                 </div>
@@ -518,25 +610,28 @@ const ManageUsers = () => {
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block px-1 group-focus-within:text-slate-900 transition-colors">Email Address <span className="text-red-500">*</span></label>
                     <input 
                       type="email" name="email" value={formData.email} onChange={handleInputChange} required
-                      className="w-full h-16 px-8 bg-slate-100 border-2 border-slate-200 rounded-[2rem] outline-none focus:bg-white focus:border-slate-800 transition-all font-bold text-slate-900 text-lg shadow-sm"
+                      className={`${baseInputClass} ${formErrors.email ? errorBorder : ''}`}
                       placeholder="example@email.com"
                     />
+                    {formErrors.email && <p className="mt-2 text-xs text-red-600">{formErrors.email}</p>}
                   </div>
                   <div className="group">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block px-1 group-focus-within:text-slate-900 transition-colors">Phone Number <span className="text-red-500">*</span></label>
                     <input 
                       type="text" name="telephone" value={formData.telephone} onChange={handleInputChange} required
-                      className="w-full h-16 px-8 bg-slate-100 border-2 border-slate-200 rounded-[2rem] outline-none focus:bg-white focus:border-slate-800 transition-all font-bold text-slate-900 text-lg shadow-sm"
+                      className={`${baseInputClass} ${formErrors.telephone ? errorBorder : ''}`}
                       placeholder="+94 7X XXX XXXX"
                     />
+                    {formErrors.telephone && <p className="mt-2 text-xs text-red-600">{formErrors.telephone}</p>}
                   </div>
                   <div className="group">
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block px-1 group-focus-within:text-slate-900 transition-colors">Postal Address <span className="text-red-500">*</span></label>
                     <input 
                       type="text" name="address" value={formData.address} onChange={handleInputChange} required
-                      className="w-full h-16 px-8 bg-slate-100 border-2 border-slate-200 rounded-[2rem] outline-none focus:bg-white focus:border-slate-800 transition-all font-bold text-slate-900 text-lg shadow-sm"
+                      className={`${baseInputClass} ${formErrors.address ? errorBorder : ''}`}
                       placeholder="City, Street, Building"
                     />
+                    {formErrors.address && <p className="mt-2 text-xs text-red-600">{formErrors.address}</p>}
                   </div>
                 </div>
               </div>
@@ -548,12 +643,14 @@ const ManageUsers = () => {
                     <div className="group">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block">Department <span className="text-red-500">*</span></label>
                       <input type="text" name="department" value={formData.department} onChange={handleInputChange} required
-                        className="w-full h-16 px-8 bg-white border-2 border-slate-200 rounded-[2rem] outline-none focus:border-slate-800 transition-all text-base font-bold shadow-sm" />
+                        className={`${baseInputClass} ${formErrors.department ? errorBorder : ''}`} />
+                      {formErrors.department && <p className="mt-2 text-xs text-red-600">{formErrors.department}</p>}
                     </div>
                     <div className="group">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block">Specialization <span className="text-red-500">*</span></label>
                       <input type="text" name="specialization" value={formData.specialization} onChange={handleInputChange} required
-                        className="w-full h-16 px-8 bg-white border-2 border-slate-200 rounded-[2rem] outline-none focus:border-slate-800 transition-all text-base font-bold shadow-sm" />
+                        className={`${baseInputClass} ${formErrors.specialization ? errorBorder : ''}`} />
+                      {formErrors.specialization && <p className="mt-2 text-xs text-red-600">{formErrors.specialization}</p>}
                     </div>
                   </div>
                 )}
@@ -563,12 +660,14 @@ const ManageUsers = () => {
                     <div className="group">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block">Batch Name <span className="text-red-500">*</span></label>
                       <input type="text" name="batchName" value={formData.batchName} onChange={handleInputChange} required
-                        className="w-full h-16 px-8 bg-white border-2 border-slate-200 rounded-[2rem] outline-none focus:border-slate-800 transition-all text-base font-bold shadow-sm" />
+                        className={`${baseInputClass} ${formErrors.batchName ? errorBorder : ''}`} />
+                      {formErrors.batchName && <p className="mt-2 text-xs text-red-600">{formErrors.batchName}</p>}
                     </div>
                     <div className="group">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block">Academic Year <span className="text-red-500">*</span></label>
                       <input type="number" name="year" value={formData.year} onChange={handleInputChange} required
-                        className="w-full h-16 px-8 bg-white border-2 border-slate-200 rounded-[2rem] outline-none focus:border-slate-800 transition-all text-base font-bold shadow-sm" />
+                        className={`${baseInputClass} ${formErrors.year ? errorBorder : ''}`} />
+                      {formErrors.year && <p className="mt-2 text-xs text-red-600">{formErrors.year}</p>}
                     </div>
                   </div>
                 )}
@@ -580,24 +679,31 @@ const ManageUsers = () => {
                       <DynamicJsonForm 
                         key={editingUser?.userId || 'new'}
                         initialValue={formData.committee}
-                        onChange={(json) => setFormData(prev => ({ ...prev, committee: json }))}
+                        onChange={(json) => {
+                          setFormData(prev => ({ ...prev, committee: json }));
+                          setFormErrors(prev => ({ ...prev, committee: undefined }));
+                        }}
                       />
+                      {formErrors.committee && <p className="mt-2 text-xs text-red-600">{formErrors.committee}</p>}
                     </div>
                     <div className="group">
                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block">Organization Mission <span className="text-red-500">*</span></label>
                       <textarea name="mission" value={formData.mission} onChange={handleInputChange} rows={3} required
-                        className="w-full px-10 py-8 bg-white border-2 border-slate-200 rounded-[3rem] outline-none focus:border-slate-800 transition-all text-base font-bold shadow-sm resize-none" />
+                        className={`${baseTextareaClass} ${formErrors.mission ? errorBorder : ''}`} />
+                      {formErrors.mission && <p className="mt-2 text-xs text-red-600">{formErrors.mission}</p>}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                       <div className="group">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block">Strategic Vision <span className="text-red-500">*</span></label>
                         <textarea name="vision" value={formData.vision} onChange={handleInputChange} rows={5} required
-                          className="w-full px-10 py-8 bg-white border-2 border-slate-200 rounded-[3rem] outline-none focus:border-slate-800 transition-all text-base font-bold shadow-sm resize-none" />
+                          className={`${baseTextareaClass} ${formErrors.vision ? errorBorder : ''}`} />
+                      {formErrors.vision && <p className="mt-2 text-xs text-red-600">{formErrors.vision}</p>}
                       </div>
                       <div className="group">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 block">Organization History <span className="text-red-500">*</span></label>
                         <textarea name="history" value={formData.history} onChange={handleInputChange} rows={5} required
-                          className="w-full px-10 py-8 bg-white border-2 border-slate-200 rounded-[3rem] outline-none focus:border-slate-800 transition-all text-base font-bold shadow-sm resize-none" />
+                          className={`${baseTextareaClass} ${formErrors.history ? errorBorder : ''}`} />
+                        {formErrors.history && <p className="mt-2 text-xs text-red-600">{formErrors.history}</p>}
                       </div>
                     </div>
                   </div>
