@@ -2,30 +2,29 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, User, Lock, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { success, error: toastError } = useToast();
 
   // Single state object for form data
   const [formData, setFormData] = useState({ userName: '', password: '' });
-  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const loggedUser = await login(formData);
-      console.log(loggedUser);
-      console.log(formData);
+      success('Logged in successfully.');
 
-      // Role-based navigation
       if (loggedUser.role === "ROLE_ADMIN_LEC") navigate("/admin/dashboard");
       else if (loggedUser.role === "ROLE_BATCH_REP" || loggedUser.role === "ROLE_ORGANIZATION") navigate("/coordinator/dashboard");
       else navigate("/");
 
     } catch (err) {
-      console.log(err);
-      setError('Invalid username or password');
+      console.error(err);
+      toastError('Invalid username or password');
     }
   };
 
@@ -49,13 +48,6 @@ const Login = () => {
 
         {/* Form Section */}
         <div className="p-8">
-
-          {error && (
-            <div className="bg-red-50 text-red-500 p-3 rounded-lg text-sm font-medium mb-6 text-center border border-red-100 flex items-center justify-center gap-2">
-              <span className="w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px]">!</span>
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
 

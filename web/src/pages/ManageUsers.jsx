@@ -6,7 +6,9 @@ import {
   Image as ImageIcon, Key, Layers, Globe, Fingerprint
 } from 'lucide-react';
 import api from '../api/axiosConfig';
+import { useToast } from '../contexts/ToastContext';
 import DynamicJsonForm from '../components/DynamicJsonForm';
+import ConfirmModal, { defaultConfirmModalState } from '../components/ConfirmModal';
 
 const BASE_URL = 'http://localhost:8080';
 
@@ -26,6 +28,9 @@ const ManageUsers = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [imageUploading, setImageUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const { success, error: toastError } = useToast();
+  const [confirmModal, setConfirmModal] = useState(defaultConfirmModalState);
+  const [processingConfirm, setProcessingConfirm] = useState(false);
 
   const initialFormState = {
     userName: '',
@@ -100,6 +105,7 @@ const ManageUsers = () => {
       }
     } catch (error) {
       console.error(`Failed to fetch ${role} list`, error);
+      toastError('Failed to fetch users.');
       setUsers([]);
     } finally {
       setLoading(false);
@@ -123,6 +129,29 @@ const ManageUsers = () => {
     setImagePreview(null);
     setFormData(prev => ({ ...prev, orgUrl: '' }));
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const openConfirmModal = ({ title, description, confirmText, action }) => {
+    setConfirmModal({ open: true, title, description, confirmText, action });
+  };
+
+  const closeConfirmModal = () => {
+    if (processingConfirm) return;
+    setConfirmModal(defaultConfirmModalState);
+  };
+
+  const runConfirmAction = async () => {
+    if (!confirmModal.action) return;
+    setProcessingConfirm(true);
+    try {
+      await confirmModal.action();
+      closeConfirmModal();
+    } catch (error) {
+      console.error('Confirmation action failed:', error);
+      toastError('Failed to complete the action.');
+    } finally {
+      setProcessingConfirm(false);
+    }
   };
 
   const uploadImage = async () => {
@@ -198,28 +227,33 @@ const ManageUsers = () => {
 
       if (editingUser) {
         await api.put(`/api/auth/update/${editingUser.userId}`, payload, { withCredentials: true });
+        success('User updated successfully.');
       } else {
         await api.post('/api/auth/register', payload, { withCredentials: true });
+        success('User created successfully.');
       }
       
       setIsModalOpen(false);
       fetchUsers(activeTab);
     } catch (error) {
       console.error("Form submission failed", error);
-      alert(error.response?.data?.message || 'Action failed');
+      toastError(error.response?.data?.message || 'Action failed');
     } finally {
       setFormLoading(false);
     }
   };
 
-  const handleDelete = async (userId) => {
-    if (!window.confirm('Confirm permanent deletion of this entity?')) return;
-    try {
-      await api.delete(`/api/auth/${userId}`, { withCredentials: true });
-      fetchUsers(activeTab);
-    } catch (error) {
-      console.error("Deletion failed", error);
-    }
+  const handleDelete = (userId) => {
+    openConfirmModal({
+      title: 'Delete User',
+      description: 'Are you sure you want to permanently delete this user? This action cannot be undone.',
+      confirmText: 'Delete User',
+      action: async () => {
+        await api.delete(`/api/auth/${userId}`, { withCredentials: true });
+        fetchUsers(activeTab);
+        success('User deleted successfully.');
+      }
+    });
   };
 
   const filteredUsers = users.filter(user => 
@@ -594,6 +628,13 @@ const ManageUsers = () => {
           100% { transform: scale(1); opacity: 1; filter: blur(0); }
         }
       `}} />
+
+      <ConfirmModal
+        modal={confirmModal}
+        onConfirm={runConfirmAction}
+        onCancel={closeConfirmModal}
+        processing={processingConfirm}
+      />
     </div>
   );
 };

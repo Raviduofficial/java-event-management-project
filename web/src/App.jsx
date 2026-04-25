@@ -20,14 +20,16 @@ import ModifyEvent from './pages/ModifyEvent';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 
 function App() {
 
   const { user, isAuthenticated } = useAuth();
 
   return (
-    <Routes>
-      <Route element={<RootLayout />}>
+    <ToastProvider>
+      <Routes>
+        <Route element={<RootLayout />}>
 
         {/* ── Public Routes ── */}
         <Route path="/" element={<Home />} />
@@ -79,6 +81,7 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+    </ToastProvider>
   );
 }
 

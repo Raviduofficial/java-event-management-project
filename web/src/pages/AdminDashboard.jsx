@@ -5,10 +5,12 @@ import {
   BarChart2, ShieldCheck, MapPin, CheckCircle2, XCircle, X, Clock, FileText, Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../contexts/ToastContext';
 import api from '../api/axiosConfig';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { success, error: toastError } = useToast();
 
   const [events, setEvents] = useState([]);
   const [coordinators, setCoordinators] = useState([]);
@@ -37,6 +39,7 @@ const AdminDashboard = () => {
         setLoading(false);
       } catch (error) {
         console.error("Error fetching admin dashboard data:", error);
+        toastError('Failed to load dashboard data.');
         setLoading(false);
       }
     };
@@ -48,8 +51,10 @@ const AdminDashboard = () => {
     try {
       await api.patch(`/api/events/${id}/approved`);
       setEvents(events.map(e => e.eventId === id ? { ...e, status: 'APPROVED' } : e));
+      success('Event approved successfully.');
     } catch (error) {
       console.error("Error approving event:", error);
+      toastError('Failed to approve event.');
     }
   };
 
@@ -64,7 +69,7 @@ const AdminDashboard = () => {
 
   const handleRejectSubmit = async () => {
     if (!rejectModal.message.trim()) {
-      alert('Please provide a rejection message.');
+      toastError('Please provide a rejection message.');
       return;
     }
 
@@ -73,6 +78,7 @@ const AdminDashboard = () => {
       if (rejectModal.type === 'event') {
         await api.patch(`/api/events/${rejectModal.id}/rejected`, { message: rejectModal.message });
         setEvents(events.map(e => e.eventId === rejectModal.id ? { ...e, status: 'REJECTED', rejectMessage: rejectModal.message } : e));
+        success('Event rejected successfully.');
       } else {
         await api.patch(`/api/letters/${rejectModal.id}/rejected`, { message: rejectModal.message });
         setEvents(events.map(e => {
@@ -84,11 +90,12 @@ const AdminDashboard = () => {
           }
           return e;
         }));
+        success('Letter rejected successfully.');
       }
       closeRejectModal();
     } catch (error) {
       console.error("Error submitting rejection:", error);
-      alert('Failed to reject. Please try again.');
+      toastError('Failed to reject. Please try again.');
     } finally {
       setProcessingReject(false);
     }
@@ -106,8 +113,10 @@ const AdminDashboard = () => {
         }
         return e;
       }));
+      success('Letter approved successfully.');
     } catch (error) {
       console.error("Error approving letter:", error);
+      toastError('Failed to approve letter.');
     }
   };
 

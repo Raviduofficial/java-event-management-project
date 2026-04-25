@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import api from '../api/axiosConfig';
 import DynamicJsonForm from '../components/DynamicJsonForm';
 
@@ -16,6 +17,7 @@ const ModifyEvent = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { success, error: toastError } = useToast();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,7 +72,7 @@ const ModifyEvent = () => {
       
       const event = eventRes.data.data;
       if (event.status !== 'APPROVED') {
-        alert("Only approved events can be modified.");
+        toastError("Only approved events can be modified.");
         navigate('/coordinator/dashboard');
         return;
       }
@@ -91,7 +93,7 @@ const ModifyEvent = () => {
       if (event.eventUrl) setImagePreview(event.eventUrl);
     } catch (error) {
       console.error("Error fetching event data:", error);
-      alert("Failed to load event data.");
+      toastError("Failed to load event data.");
       navigate('/coordinator/dashboard');
     } finally {
       setLoading(false);
@@ -166,7 +168,7 @@ const ModifyEvent = () => {
     const file = e.target.files[0];
     if (!file) return;
     if (file.type !== 'application/pdf') {
-      alert("Please select a PDF file.");
+      toastError("Please select a PDF file.");
       return;
     }
     setAgendaFile(file);
@@ -201,19 +203,19 @@ const ModifyEvent = () => {
     const now = new Date();
     
     if (start < now) {
-      alert("Start time cannot be in the past.");
+      toastError("Start time cannot be in the past.");
       return;
     }
     
     if (end <= start) {
-      alert("End time must be after the start time.");
+      toastError("End time must be after the start time.");
       return;
     }
     
     // Ensure at least a 30-minute gap
     const gapMs = end - start;
     if (gapMs < 30 * 60 * 1000) {
-      alert("Event must be at least 30 minutes long.");
+      toastError("Event must be at least 30 minutes long.");
       return;
     }
 
@@ -231,11 +233,11 @@ const ModifyEvent = () => {
         coordinatorId: user.userId
       };
       await api.put(`/api/events/${id}`, payload, { withCredentials: true });
-      alert("Event details updated successfully!");
+      success("Event details updated successfully!");
       navigate(`/events/${id}`);
     } catch (error) {
       console.error("Update failed", error);
-      alert("Failed to update event.");
+      toastError("Failed to update event.");
     } finally {
       setSaving(false);
     }

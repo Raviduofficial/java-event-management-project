@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Pencil, Trash2, Building, Users, MapPin, UploadCloud, X } from 'lucide-react';
 import api from '../api/axiosConfig';
+import { useToast } from '../contexts/ToastContext';
+import ConfirmModal, { defaultConfirmModalState } from '../components/ConfirmModal';
 
 const BASE_URL = 'http://localhost:8080';
 
 const AddVenue = () => {
   const [venues, setVenues] = useState([]);
+  const [confirmModal, setConfirmModal] = useState(defaultConfirmModalState);
+  const [processingConfirm, setProcessingConfirm] = useState(false);
+  const { success, error: toastError } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -33,6 +38,7 @@ const AddVenue = () => {
       setVenues(res.data.data);
     } catch (error) {
       console.error("Failed to fetch venues", error);
+      toastError('Failed to fetch venues.');
     }
   };
 
@@ -88,6 +94,7 @@ const AddVenue = () => {
       return `${BASE_URL}/api/files/cdn/${filename}`;
     } catch (err) {
       console.error("Image upload failed", err);
+      toastError('Image upload failed. Retaining existing image if available.');
       return formData.venueUrl;
     } finally {
       setImageUploading(false);
@@ -112,8 +119,10 @@ const AddVenue = () => {
 
       if (editId) {
         await api.put(`/api/venues/${editId}`, payload, { withCredentials: true });
+        success('Venue updated successfully.');
       } else {
         await api.post('/api/venues', payload, { withCredentials: true });
+        success('Venue created successfully.');
       }
 
       setFormData({ name: '', location: '', capacity: '', description: '', venueUrl: '', facilities: '', booked: false });
@@ -122,6 +131,7 @@ const AddVenue = () => {
       fetchVenues();
     } catch (error) {
       console.error("Failed to save venue", error);
+      toastError('Failed to save venue. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -154,14 +164,40 @@ const AddVenue = () => {
     setImageFile(null);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this venue?")) return;
+  const openConfirmModal = ({ title, description, confirmText, action }) => {
+    setConfirmModal({ open: true, title, description, confirmText, action });
+  };
+
+  const closeConfirmModal = () => {
+    if (processingConfirm) return;
+    setConfirmModal(defaultConfirmModalState);
+  };
+
+  const runConfirmAction = async () => {
+    if (!confirmModal.action) return;
+    setProcessingConfirm(true);
     try {
-      await api.delete(`/api/venues/${id}`, { withCredentials: true });
-      fetchVenues();
+      await confirmModal.action();
+      closeConfirmModal();
     } catch (error) {
-      console.error("Failed to delete venue", error);
+      console.error("Confirmation action failed:", error);
+      toastError('Failed to perform the action.');
+    } finally {
+      setProcessingConfirm(false);
     }
+  };
+
+  const handleDelete = (id) => {
+    openConfirmModal({
+      title: 'Delete Venue',
+      description: 'Are you sure you want to delete this venue? This action cannot be undone.',
+      confirmText: 'Delete Venue',
+      action: async () => {
+        await api.delete(`/api/venues/${id}`, { withCredentials: true });
+        fetchVenues();
+        success('Venue deleted successfully.');
+      }
+    });
   };
 
   const handleCancelEdit = () => {
@@ -173,7 +209,6 @@ const AddVenue = () => {
   return (
     <div className="bg-[#fafafa] font-sans text-left min-h-screen pb-20">
       <main className="max-w-7xl mx-auto p-8 mt-4">
-
         <div className="mb-10">
           <h1 className="text-4xl font-extrabold text-[#1a1a1a] mb-3 tracking-tight">Venue Management</h1>
           <p className="text-gray-600 text-sm max-w-2xl leading-relaxed">
@@ -372,6 +407,13 @@ const AddVenue = () => {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
       `}} />
+
+      <ConfirmModal
+        modal={confirmModal}
+        onConfirm={runConfirmAction}
+        onCancel={closeConfirmModal}
+        processing={processingConfirm}
+      />
     </div>
   );
 };

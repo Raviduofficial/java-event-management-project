@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import api from '../api/axiosConfig';
 
 const BASE_URL = 'http://localhost:8080';
@@ -12,6 +13,7 @@ const BASE_URL = 'http://localhost:8080';
 const AddEvent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { success, error: toastError } = useToast();
   
   const [formData, setFormData] = useState({
     title: '',
@@ -102,11 +104,11 @@ const AddEvent = () => {
         coordinatorId: user.userId
       }, { withCredentials: true });
 
-      alert("Event proposal submitted successfully!");
+      success("Event proposal submitted successfully!");
       navigate('/coordinator/dashboard');
     } catch (error) {
       console.error("Failed to submit event", error);
-      alert("Failed to submit proposal.");
+      toastError("Failed to submit proposal.");
     } finally {
       setLoading(false);
     }

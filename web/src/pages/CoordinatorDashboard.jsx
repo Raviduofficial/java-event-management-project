@@ -7,16 +7,21 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import ConfirmModal, { defaultConfirmModalState } from '../components/ConfirmModal';
 import api from '../api/axiosConfig';
 
 const CoordinatorDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { success, error: toastError } = useToast();
 
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('PENDING'); // PENDING, APPROVED, REJECTED
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(defaultConfirmModalState);
+  const [processingConfirm, setProcessingConfirm] = useState(false);
 
   // Letter Submission State
   const [letterForm, setLetterForm] = useState({
@@ -55,42 +60,67 @@ const CoordinatorDashboard = () => {
     setOpenDropdownId(openDropdownId === id ? null : id);
   };
 
-  const handleDeleteEvent = async (eventId) => {
-    if (!window.confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
+  const openConfirmModal = ({ title, description, confirmText, action }) => {
+    setConfirmModal({ open: true, title, description, confirmText, action });
+  };
 
+  const closeConfirmModal = () => {
+    if (processingConfirm) return;
+    setConfirmModal(defaultConfirmModalState);
+  };
+
+  const runConfirmAction = async () => {
+    if (!confirmModal.action) return;
+    setProcessingConfirm(true);
     try {
-      await api.delete(`/api/events/${eventId}`, { withCredentials: true });
-      setEvents(events.filter(e => e.eventId !== eventId));
+      await confirmModal.action();
+      closeConfirmModal();
     } catch (error) {
-      console.error("Error deleting event:", error);
-      alert("Failed to delete event.");
+      console.error("Confirmation action failed:", error);
+      toastError("The requested action could not be completed.");
+    } finally {
+      setProcessingConfirm(false);
     }
   };
 
-  const handleDeleteLetter = async (letterId, eventId) => {
-    if (!window.confirm("Delete this permission letter?")) return;
+  const handleDeleteEvent = (eventId) => {
+    openConfirmModal({
+      title: 'Delete Event',
+      description: 'Are you sure you want to delete this event? This action cannot be undone.',
+      confirmText: 'Delete Event',
+      action: async () => {
+        await api.delete(`/api/events/${eventId}`, { withCredentials: true });
+        setEvents(events.filter(e => e.eventId !== eventId));
+        success('Event deleted successfully.');
+      }
+    });
+  };
 
-    try {
-      await api.delete(`/api/letters/${letterId}`, { withCredentials: true });
-      setEvents(events.map(event => {
-        if (event.eventId === eventId) {
-          return {
-            ...event,
-            permissionLetters: event.permissionLetters.filter(l => l.letterId !== letterId)
-          };
-        }
-        return event;
-      }));
-    } catch (error) {
-      console.error("Error deleting letter:", error);
-      alert("Failed to delete letter.");
-    }
+  const handleDeleteLetter = (letterId, eventId) => {
+    openConfirmModal({
+      title: 'Delete Permission Letter',
+      description: 'Delete this permission letter? This action cannot be undone.',
+      confirmText: 'Delete Letter',
+      action: async () => {
+        await api.delete(`/api/letters/${letterId}`, { withCredentials: true });
+        setEvents(events.map(event => {
+          if (event.eventId === eventId) {
+            return {
+              ...event,
+              permissionLetters: event.permissionLetters.filter(l => l.letterId !== letterId)
+            };
+          }
+          return event;
+        }));
+        success('Permission letter deleted successfully.');
+      }
+    });
   };
 
   const handleAddLetter = async (e) => {
     e.preventDefault();
     if (!letterForm.eventId || !selectedFile) {
-      alert("Please select an event and upload a letter file.");
+      toastError("Please select an event and upload a letter file.");
       return;
     }
 
@@ -115,13 +145,13 @@ const CoordinatorDashboard = () => {
       }, { withCredentials: true });
 
       // 3. Refresh and Reset
-      alert("Letter submitted successfully!");
+      success("Letter submitted successfully!");
       setLetterForm({ letterTitle: '', letterDescription: '', eventId: '' });
       setSelectedFile(null);
       fetchCoordinatorEvents();
     } catch (error) {
       console.error("Error submitting letter:", error);
-      alert("Failed to submit letter.");
+      toastError("Failed to submit letter.");
     } finally {
       setSubmittingLetter(false);
     }
@@ -449,6 +479,13 @@ const CoordinatorDashboard = () => {
 
         </div>
       </main>
+
+      <ConfirmModal
+        modal={confirmModal}
+        onConfirm={runConfirmAction}
+        onCancel={closeConfirmModal}
+        processing={processingConfirm}
+      />
     </div>
   );
 };
