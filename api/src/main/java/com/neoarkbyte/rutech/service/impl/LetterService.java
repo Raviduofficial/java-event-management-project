@@ -68,11 +68,12 @@ public class LetterService {
     }
 
     @Transactional
-    public LetterResponseDTO rejectLetter(String id) {
+    public LetterResponseDTO rejectLetter(String id, String message) {
         PermissionLetter existingLetter = letterRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Permission letter not found with id: " + id));
 
         existingLetter.setStatus(STATUS.REJECTED);
+        existingLetter.setRejectMessage(message);
 
         return letterMapper.toResponseDTO(existingLetter);
     }

@@ -227,7 +227,7 @@ const CoordinatorDashboard = () => {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[68vh] overflow-y-auto pr-2">
               {filteredEvents.length > 0 ? filteredEvents.map((event) => (
                 <div key={event.eventId} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden hover:border-teal-100 transition-all group">
                   <div className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -250,6 +250,11 @@ const CoordinatorDashboard = () => {
                             {event.status}
                           </span>
                         </div>
+                        {event.status === 'REJECTED' && event.rejectMessage && (
+                          <p className="mt-3 text-[10px] text-red-600 font-medium leading-relaxed bg-red-50 border border-red-100 rounded-2xl p-3">
+                            {event.rejectMessage}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -297,6 +302,11 @@ const CoordinatorDashboard = () => {
                                 }`}>
                                 {letter.status}
                               </span>
+                              {letter.status === 'REJECTED' && letter.rejectMessage && (
+                                <p className="mt-3 text-[10px] text-red-600 font-medium leading-relaxed bg-red-50 border border-red-100 rounded-2xl p-3">
+                                  {letter.rejectMessage}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">

@@ -209,6 +209,28 @@ const EventDetails = () => {
               </p>
             </div>
 
+            {/* Event Agenda Download */}
+            {event.agendaUrl && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-[#0b1120] mb-2 flex items-center gap-2">
+                      <FileText className="text-teal-600" size={20} /> Event Agenda
+                    </h3>
+                    <p className="text-sm text-gray-500">Download the official schedule PDF for this event.</p>
+                  </div>
+                  <a
+                    href={event.agendaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-[#0b1120] hover:bg-slate-800 text-white px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-[#0b1120]/10 transition-all"
+                  >
+                    <Download size={16} /> Download Agenda
+                  </a>
+                </div>
+              </div>
+            )}
+
             {/* Permission Letters */}
             {event.permissionLetters?.filter(l => l.status === 'APPROVED').length > 0 && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">

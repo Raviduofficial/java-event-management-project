@@ -71,6 +71,8 @@ public class Event {
 
     private STATUS status;
 
+    private String rejectMessage;
+
     @PrePersist
     public void generateFields() {
         if (eventId == null) {
