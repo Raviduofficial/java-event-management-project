@@ -82,7 +82,7 @@ public class AuthController {
 
 
     @PutMapping("update/{id}")
-    public ResponseEntity<ApiResponse<UserResponseDTO>> updateEvent(@PathVariable String id, @Valid @RequestBody UserCreateDTO updateDTO) {
+    public ResponseEntity<ApiResponse<UserResponseDTO>> updateUser(@PathVariable String id, @Valid @RequestBody UserCreateDTO updateDTO) {
         UserResponseDTO response = authService.updateUser(id, updateDTO);
         return ResponseEntity.ok(ResponseUtil.success("User updated successfully", response, null));
     }

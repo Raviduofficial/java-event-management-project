@@ -91,6 +91,59 @@ const EventDetails = () => {
     });
   };
 
+  const calculateTotalBudget = (data) => {
+    if (!data) return 0;
+    if (typeof data === 'number') return data;
+    if (typeof data === 'string') return parseFloat(data.replace(/,/g, '')) || 0;
+    if (Array.isArray(data)) {
+      return data.reduce((sum, item) => sum + calculateTotalBudget(item), 0);
+    }
+    if (typeof data === 'object') {
+      return Object.values(data).reduce((sum, item) => sum + calculateTotalBudget(item), 0);
+    }
+    return 0;
+  };
+
+  const renderBudgetRows = (data, level = 0) => {
+    if (!data || typeof data !== 'object') return null;
+
+    return Object.entries(data).map(([key, val], idx) => {
+      const isObject = typeof val === 'object' && val !== null && !Array.isArray(val);
+      
+      if (isObject) {
+        const subTotal = calculateTotalBudget(val);
+        return (
+          <React.Fragment key={`${level}-${key}-${idx}`}>
+            <tr className="bg-slate-50/50 border-t border-gray-200/60">
+              <td className="px-6 py-4 font-black text-slate-800 uppercase tracking-widest text-[10px]" style={{ paddingLeft: `${level * 1.5 + 1.5}rem` }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-teal-500"></div>
+                  {key.replace(/([A-Z])/g, ' $1').trim()}
+                </div>
+              </td>
+              <td className="px-6 py-4 font-black text-slate-900 text-right text-xs">
+                LKR {subTotal.toLocaleString()}
+              </td>
+            </tr>
+            {renderBudgetRows(val, level + 1)}
+          </React.Fragment>
+        );
+      } else {
+        const amount = calculateTotalBudget(val);
+        return (
+          <tr key={`${level}-${key}-${idx}`} className="hover:bg-slate-50/50 transition-colors">
+            <td className="px-6 py-4 font-bold text-slate-700 capitalize" style={{ paddingLeft: `${level * 1.5 + 2.5}rem` }}>
+              {key.replace(/([A-Z])/g, ' $1').trim()}
+            </td>
+            <td className="px-6 py-4 font-black text-teal-600 text-right">
+              {amount.toLocaleString()}
+            </td>
+          </tr>
+        );
+      }
+    });
+  };
+
   return (
     <div className="bg-[#f8fafc] font-sans text-left min-h-screen pb-20">
       <main className="max-w-7xl mx-auto p-8 mt-4">
@@ -156,48 +209,6 @@ const EventDetails = () => {
               </p>
             </div>
 
-            {/* Event Agenda */}
-            {(event.marketing?.agenda || event.marketing?.agendaUrl) && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                <h3 className="text-lg font-bold text-[#0b1120] flex items-center gap-2 mb-6">
-                  <Clock className="text-teal-600" size={20} /> Event Agenda
-                </h3>
-                
-                {event.marketing?.agenda && event.marketing.agenda.length > 0 && (
-                  <div className="border-l-2 border-gray-100 ml-3 space-y-8 mb-8">
-                    {event.marketing.agenda.map((item, idx) => (
-                      <div key={idx} className="relative pl-8 group">
-                        <div className="absolute -left-[9px] top-1 w-4 h-4 bg-white border-2 border-teal-500 rounded-full group-hover:scale-125 transition-transform duration-300"></div>
-                        <h4 className="text-teal-600 font-bold text-xs mb-1 uppercase tracking-wider">{item.time}</h4>
-                        <h5 className="font-bold text-slate-800 text-sm group-hover:text-teal-700 transition-colors">{item.activity}</h5>
-                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">{item.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {event.marketing?.agendaUrl && (
-                  <div className="bg-teal-50/50 border border-teal-100 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 hover:shadow-md hover:bg-teal-50 transition-all duration-300 mt-2">
-                    <div className="flex items-center gap-5 w-full sm:w-auto">
-                      <div className="w-14 h-14 rounded-2xl bg-white border border-teal-100 flex items-center justify-center text-teal-600 shadow-sm flex-shrink-0 group-hover:scale-105 transition-transform">
-                        <FileText size={24} />
-                      </div>
-                      <div className="text-left">
-                        <h4 className="text-[#0b1120] font-extrabold text-base md:text-lg mb-1 tracking-tight">Official Event Agenda</h4>
-                        <p className="text-teal-700/80 text-[10px] uppercase tracking-widest font-bold">Comprehensive Schedule PDF</p>
-                      </div>
-                    </div>
-                    
-                    <a href={event.marketing.agendaUrl} target="_blank" rel="noopener noreferrer"
-                       className="w-full sm:w-auto flex items-center justify-center gap-3 bg-[#0b1120] hover:bg-slate-800 text-white px-8 py-3.5 rounded-xl text-xs font-black shadow-lg shadow-slate-900/10 transition-all uppercase tracking-[0.15em] group/btn active:scale-95">
-                      Download
-                      <Download size={16} className="group-hover/btn:-translate-y-0.5 group-hover/btn:scale-110 transition-all duration-300" />
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Permission Letters */}
             {event.permissionLetters?.filter(l => l.status === 'APPROVED').length > 0 && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
@@ -251,18 +262,16 @@ const EventDetails = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                          {Object.entries(event.budgetReport).map(([cat, val], idx) => (
-                            <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-6 py-4 font-bold text-slate-700 capitalize">{cat}</td>
-                              <td className="px-6 py-4 font-black text-teal-600 text-right">
-                                {Number(val).toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                          <tr className="bg-teal-50/30">
-                            <td className="px-6 py-4 font-black text-[#0b1120] uppercase tracking-tighter">Total Estimated Budget</td>
-                            <td className="px-6 py-4 font-black text-[#0b1120] text-right text-lg">
-                              LKR {Object.values(event.budgetReport).reduce((a, b) => Number(a) + Number(b), 0).toLocaleString()}
+                          {renderBudgetRows(event.budgetReport)}
+                          <tr className="bg-teal-50/40 border-t-2 border-teal-100">
+                            <td className="px-6 py-5 font-black text-[#0b1120] uppercase tracking-tighter flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center">
+                                <BanknoteIcon size={16} />
+                              </div>
+                              Total Estimated Budget
+                            </td>
+                            <td className="px-6 py-5 font-black text-[#0b1120] text-right text-lg">
+                              LKR {calculateTotalBudget(event.budgetReport).toLocaleString()}
                             </td>
                           </tr>
                         </tbody>
@@ -302,26 +311,6 @@ const EventDetails = () => {
               </div>
             )}
 
-            {/* Marketing & Promotion */}
-            {event.marketing?.channels && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                <h3 className="text-lg font-bold text-[#0b1120] mb-6 flex items-center gap-2">
-                  <Mic className="text-teal-600" size={20} /> Marketing & Promotion
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-4">Active Channels</p>
-                    <ul className="space-y-4 text-xs font-medium text-slate-600">
-                      {event.marketing.channels.map((channel, idx) => (
-                        <li key={idx} className="flex items-center gap-3">
-                          <Globe size={16} className="text-teal-500" /> {channel}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Right Column - Sidebar */}

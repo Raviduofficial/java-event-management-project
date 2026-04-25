@@ -30,7 +30,6 @@ const ModifyEvent = () => {
     endTime: '',
     budgetReport: {},
     sponsorships: {},
-    marketing: {},
     committee: {}
   });
   
@@ -40,9 +39,17 @@ const ModifyEvent = () => {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
   
-  const [agendaFile, setAgendaFile] = useState(null);
-  const [agendaUploading, setAgendaUploading] = useState(false);
-  const agendaInputRef = useRef(null);
+  // Calculate minimum datetime (now) for inputs
+  const getMinDateTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+  const minDateTime = getMinDateTime();
 
   useEffect(() => {
     fetchInitialData();
@@ -57,8 +64,8 @@ const ModifyEvent = () => {
       ]);
       
       const event = eventRes.data.data;
-      if (event.status !== 'APPROVED' && event.status !== 'PENDING') {
-        alert("Only approved or pending events can be modified.");
+      if (event.status !== 'APPROVED') {
+        alert("Only approved events can be modified.");
         navigate('/coordinator/dashboard');
         return;
       }
@@ -73,7 +80,6 @@ const ModifyEvent = () => {
         endTime: event.endTime ? event.endTime.replace(' ', 'T').slice(0, 16) : '',
         budgetReport: event.budgetReport || {},
         sponsorships: event.sponsorships || {},
-        marketing: event.marketing || {},
         committee: event.committee || {}
       });
       if (event.eventUrl) setImagePreview(event.eventUrl);
@@ -144,57 +150,39 @@ const ModifyEvent = () => {
     }
   };
 
-  const clearAgenda = () => {
-    setAgendaFile(null);
-    setFormData(prev => ({ 
-      ...prev, 
-      marketing: { ...prev.marketing, agendaUrl: '' } 
-    }));
-    if (agendaInputRef.current) agendaInputRef.current.value = '';
-  };
-  
-  const handleAgendaChange = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type === 'application/pdf') {
-       setAgendaFile(file);
-    } else if (file) {
-       alert("Please select a PDF file.");
-    }
-  };
-
-  const uploadAgenda = async () => {
-    if (!agendaFile) return formData.marketing?.agendaUrl;
-    setAgendaUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', agendaFile);
-      const res = await api.post('/api/files/upload', fd, {
-        withCredentials: true,
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      return `${BASE_URL}/api/files/download/${res.data.data}`;
-    } catch (err) {
-      console.error("Agenda upload failed", err);
-      return formData.marketing?.agendaUrl;
-    } finally {
-      setAgendaUploading(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Date Validation
+    const start = new Date(formData.startTime);
+    const end = new Date(formData.endTime);
+    const now = new Date();
+    
+    if (start < now) {
+      alert("Start time cannot be in the past.");
+      return;
+    }
+    
+    if (end <= start) {
+      alert("End time must be after the start time.");
+      return;
+    }
+    
+    // Ensure at least a 30-minute gap
+    const gapMs = end - start;
+    if (gapMs < 30 * 60 * 1000) {
+      alert("Event must be at least 30 minutes long.");
+      return;
+    }
+
     setSaving(true);
     try {
       const uploadedUrl = await uploadImage();
-      const uploadedAgendaUrl = await uploadAgenda();
       
       const payload = {
         ...formData,
         eventUrl: uploadedUrl,
-        marketing: {
-          ...formData.marketing,
-          ...(uploadedAgendaUrl ? { agendaUrl: uploadedAgendaUrl } : {})
-        },
         startTime: formData.startTime.replace('T', ' ') + (formData.startTime.length === 16 ? ':00' : ''),
         endTime: formData.endTime.replace('T', ' ') + (formData.endTime.length === 16 ? ':00' : ''),
         coordinatorId: user.userId
@@ -240,7 +228,7 @@ const ModifyEvent = () => {
               <Eye size={16} /> Public View
             </button>
             <button 
-              onClick={handleSubmit} disabled={saving || imageUploading || agendaUploading}
+              onClick={handleSubmit} disabled={saving || imageUploading}
               className="px-10 h-10 flex items-center justify-center gap-3 rounded-xl bg-[#0b1120] hover:bg-slate-800 text-white font-bold text-[11px] uppercase tracking-[0.1em] shadow-lg shadow-[#0b1120]/10 transition-all active:scale-95 disabled:bg-gray-400"
             >
               {saving ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
@@ -286,6 +274,7 @@ const ModifyEvent = () => {
                               <Clock className="absolute left-5 top-4.5 text-gray-300" size={16} />
                               <input 
                                 type="datetime-local" name="startTime" value={formData.startTime} onChange={handleInputChange}
+                                min={minDateTime}
                                 className="w-full h-14 pl-14 pr-6 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-700 text-sm outline-none focus:bg-white focus:border-teal-500 transition-all"
                               />
                            </div>
@@ -296,6 +285,7 @@ const ModifyEvent = () => {
                               <Clock className="absolute left-5 top-4.5 text-gray-300" size={16} />
                               <input 
                                 type="datetime-local" name="endTime" value={formData.endTime} onChange={handleInputChange}
+                                min={formData.startTime || minDateTime}
                                 className="w-full h-14 pl-14 pr-6 bg-gray-50 border border-gray-200 rounded-xl font-bold text-slate-700 text-sm outline-none focus:bg-white focus:border-teal-500 transition-all"
                               />
                            </div>
@@ -333,12 +323,6 @@ const ModifyEvent = () => {
                      onChange={(json) => handleJsonUpdate('sponsorships', json)}
                      title="Sponsorship Tiers"
                      subtitle="List your official sponsors"
-                  />
-                  <DynamicJsonForm 
-                     initialValue={formData.marketing} 
-                     onChange={(json) => handleJsonUpdate('marketing', json)}
-                     title="Marketing & Agenda"
-                     subtitle="Plan promotion and timeline"
                   />
                   <DynamicJsonForm 
                      initialValue={formData.committee} 
@@ -382,38 +366,6 @@ const ModifyEvent = () => {
                   )}
                   <input ref={fileInputRef} type="file" onChange={handleFileInputChange} className="hidden" accept="image/*" />
 
-                  {/* Agenda Upload Section */}
-                  <div className="mt-8 pt-8 border-t border-gray-50">
-                     <div className="border-l-4 border-teal-700 pl-4 mb-4">
-                       <h3 className="font-bold text-xs tracking-widest uppercase text-slate-800">Event Agenda (PDF)</h3>
-                     </div>
-                     {(agendaFile || formData.marketing?.agendaUrl) ? (
-                       <div className="flex items-center justify-between bg-teal-50 border border-teal-100 p-4 rounded-xl">
-                         <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-teal-600 shadow-sm border border-teal-100">
-                             <CheckCircle2 size={18} />
-                           </div>
-                           <div>
-                             <p className="text-xs font-bold text-slate-800">{agendaFile?.name || "agenda_document.pdf"}</p>
-                             <p className="text-[10px] font-bold text-teal-500 uppercase tracking-widest">PDF Ready</p>
-                           </div>
-                         </div>
-                         <button type="button" onClick={clearAgenda} className="bg-red-50 text-red-500 p-2 rounded hover:bg-red-100 transition-colors">
-                           <X size={16} />
-                         </button>
-                       </div>
-                     ) : (
-                       <div
-                         onClick={() => agendaInputRef.current?.click()}
-                         className={`border-2 border-dashed border-gray-200 bg-gray-50 hover:border-teal-400 hover:bg-teal-50/30 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all`}
-                       >
-                         <UploadCloud size={24} className="mb-2 text-gray-300" />
-                         <p className="text-[11px] font-bold text-slate-700">Upload Agenda <span className="text-teal-600 underline">browse</span></p>
-                         <p className="text-[9px] text-gray-400 mt-1 uppercase tracking-widest font-bold">PDF Only</p>
-                       </div>
-                     )}
-                     <input ref={agendaInputRef} type="file" onChange={handleAgendaChange} className="hidden" accept="application/pdf" />
-                  </div>
 
                   <div className="mt-8 pt-8 border-t border-gray-50">
                     <div className="flex items-center justify-between mb-4">

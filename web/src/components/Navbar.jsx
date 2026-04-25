@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Bell, ShieldCheck, LogOut } from 'lucide-react';
+import { Bell, ShieldCheck, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -65,10 +65,7 @@ const Navbar = () => {
 
       {/* Right Side Icons & Profile */}
       <div className="flex items-center gap-6">
-        <div className="relative hidden lg:block">
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-          <input type="text" placeholder="Quick search..." className="pl-10 pr-4 py-2 bg-gray-100 border-none rounded-lg text-sm outline-none w-64" />
-        </div>
+
 
         <Bell className="text-gray-400 cursor-pointer hover:text-[#0e1b35]" size={20} />
 
