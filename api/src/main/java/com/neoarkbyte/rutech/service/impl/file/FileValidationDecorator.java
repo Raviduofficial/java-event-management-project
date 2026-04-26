@@ -48,10 +48,12 @@ public class FileValidationDecorator implements FileService {
         boolean allowed =
                 contentType.equals("application/pdf") ||
                         contentType.equals("image/png") ||
-                        contentType.equals("image/jpeg");
+                        contentType.equals("image/jpg") ||
+                        contentType.equals("image/jpeg") ||
+                        contentType.equals("image/webp");
 
         if (!allowed) {
-            throw new RuntimeException("Only PDF, PNG, JPG files are allowed");
+            throw new RuntimeException("Only PDF, PNG, JPG, JPEG, WEBP files are allowed");
         }
     }
 }
