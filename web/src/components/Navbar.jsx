@@ -1,26 +1,34 @@
 import React from 'react';
-import { Search, Bell, ShieldCheck, LogOut } from 'lucide-react';
+import { Bell, ShieldCheck, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { success, error: toastError } = useToast();
 
   // 💡 Roles දෙකම අඳුරගන්නවා
-  const isAdmin = user && user.role === 'admin';
-  const isCoordinator = user && user.role === 'coordinator';
+  const isAdmin = user && user.role === 'ROLE_ADMIN_LEC';
+  const isCoordinator = user && (user.role === 'ROLE_BATCH_REP' || user.role === 'ROLE_ORGANIZATION');
 
-  // කවුද ලොග් වෙලා ඉන්නේ කියන එක අනුව යන Dashboard Path එක තීරණය කරනවා
-  const dashboardPath = isAdmin ? '/admin-dashboard' : (isCoordinator ? '/coordinator-dashboard' : null);
+  const dashboardPath = isAdmin ? '/admin/dashboard' : (isCoordinator ? '/coordinator/dashboard' : null);
 
   const isActive = (path) => location.pathname === path;
 
   // Logout Function එක
-  const handleLogout = () => {
-    logout();
-    navigate('/login'); 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      success('Logged out successfully.');
+    } catch (err) {
+      console.error(err);
+      toastError('Unable to logout. Please try again.');
+    } finally {
+      navigate('/login');
+    }
   };
 
   return (
@@ -58,18 +66,15 @@ const Navbar = () => {
           )}
 
           <button onClick={() => navigate('/events')} className={`hover:text-emerald-600 transition-colors pb-1 border-b-2 ${isActive('/events') ? 'text-emerald-600 border-emerald-500 font-bold' : 'border-transparent'}`}>Events</button>
-          <button onClick={() => navigate('/organizations')} className={`hover:text-emerald-600 transition-colors pb-1 border-b-2 ${isActive('/organizations') || isActive('/organization-overview') ? 'text-emerald-600 border-emerald-500 font-bold' : 'border-transparent'}`}>Organizations</button>
-          <button onClick={() => navigate('/venues')} className={`hover:text-emerald-600 transition-colors pb-1 border-b-2 ${isActive('/venues') || isActive('/add-venue') ? 'text-emerald-600 border-emerald-500 font-bold' : 'border-transparent'}`}>Venues</button>
+          <button onClick={() => navigate('/organizations')} className={`hover:text-emerald-600 transition-colors pb-1 border-b-2 ${location.pathname.startsWith('/organizations') ? 'text-emerald-600 border-emerald-500 font-bold' : 'border-transparent'}`}>Organizations</button>
+          <button onClick={() => navigate('/venues')} className={`hover:text-emerald-600 transition-colors pb-1 border-b-2 ${location.pathname.startsWith('/venues') || location.pathname.startsWith('/admin/venues') ? 'text-emerald-600 border-emerald-500 font-bold' : 'border-transparent'}`}>Venues</button>
           <button onClick={() => navigate('/about')} className={`hover:text-emerald-600 transition-colors pb-1 border-b-2 ${isActive('/about') ? 'text-emerald-600 border-emerald-500 font-bold' : 'border-transparent'}`}>About</button>
         </div>
       </div>
 
       {/* Right Side Icons & Profile */}
       <div className="flex items-center gap-6">
-        <div className="relative hidden lg:block">
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-          <input type="text" placeholder="Quick search..." className="pl-10 pr-4 py-2 bg-gray-100 border-none rounded-lg text-sm outline-none w-64" />
-        </div>
+
 
         <Bell className="text-gray-400 cursor-pointer hover:text-[#0e1b35]" size={20} />
 

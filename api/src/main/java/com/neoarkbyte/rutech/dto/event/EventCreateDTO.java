@@ -14,7 +14,6 @@ public class EventCreateDTO {
     private String agendaUrl;
     private Map<String, Object> budgetReport;
     private Map<String, Object> sponsorships;
-    private Map<String, Object> marketing;
     private Map<String, Object> committee;
     private String venueId;
     private String coordinatorId;

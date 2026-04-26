@@ -1,49 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../api/axiosConfig';
 import { 
   Filter, Grid, MapPin, Users, Wifi, 
-  Wind, Coffee, Monitor, Zap, Mic, ArrowRight, Star
+  Wind, Coffee, Monitor, Zap, Mic, ArrowRight, Star, Building
 } from 'lucide-react';
 
 const Venues = () => {
+  const navigate = useNavigate();
+  const [venues, setVenues] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const venues = [
-    {
-      id: 1,
-      name: 'Premium Faculty Lounge',
-      desc: 'Ideal for departmental meetings, VIP receptions, and executive networking events.',
-      status: 'AVAILABLE',
-      statusColor: 'bg-emerald-100 text-emerald-700',
-      price: 'Rs. 5,000 /hr',
-      capacity: '40',
-      features: [<Coffee size={14} />, 'Catering', <Monitor size={14} />, '4K Display'],
-      rating: '4.9',
-      imgBg: 'bg-slate-700' // Placeholder for image
-    },
-    {
-      id: 2,
-      name: 'Athletic Multi-Ground',
-      desc: 'Our flagship outdoor arena for tournaments, annual sports meets, and large concerts.',
-      status: 'RESERVED',
-      statusColor: 'bg-red-100 text-red-700',
-      price: 'Contact For Rates',
-      capacity: '5000+',
-      features: [<Zap size={14} />, 'Night Lights', <Users size={14} />, 'Pavilion'],
-      rating: '4.7',
-      imgBg: 'bg-emerald-800' // Placeholder for image
-    },
-    {
-      id: 3,
-      name: 'Science Lecture Hall 01',
-      desc: 'Formal lecture environment with high-tier audio-visual capabilities for academic seminars.',
-      status: 'AVAILABLE',
-      statusColor: 'bg-emerald-100 text-emerald-700',
-      price: 'Rs. 2,500 /hr',
-      capacity: '250',
-      features: [<Mic size={14} />, 'Sound Sys', <Wifi size={14} />, 'Wireless Cast'],
-      rating: '4.8',
-      imgBg: 'bg-amber-900' // Placeholder for image
-    }
-  ];
+  useEffect(() => {
+    const fetchVenues = async () => {
+      try {
+        const res = await api.get('/api/venues', { withCredentials: true });
+        setVenues(res.data.data);
+      } catch (error) {
+        console.error("Error fetching venues", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVenues();
+  }, []);
 
   return (
     <div className="bg-[#fafafa] font-sans text-left min-h-screen pb-20">
@@ -69,109 +49,122 @@ const Venues = () => {
         </div>
 
         {/* 2. Featured Venue & Quick Reservation (Top Grid) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-          
-          {/* Featured Hero Card */}
-          <div className="lg:col-span-2 rounded-2xl overflow-hidden relative shadow-md group cursor-pointer h-[400px]">
-            {/* Background Image Placeholder */}
-            <div className="absolute inset-0 bg-red-900 bg-opacity-80 group-hover:scale-105 transition-transform duration-700"></div>
-            {/* Dark overlay for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+        {!loading && venues.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
             
-            <div className="absolute bottom-0 left-0 p-8 w-full">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="bg-teal-400 text-[#0b1120] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                  Featured
-                </span>
-                <span className="flex items-center gap-1 text-white/90 text-xs font-medium">
-                  <MapPin size={12} /> Administration Block
-                </span>
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
-                Rabindranath Tagore Memorial <br className="hidden md:block" /> Auditorium
-              </h2>
-              <div className="flex flex-wrap items-center gap-6 text-white/90 text-sm font-medium">
-                <div className="flex items-center gap-2"><Users size={16} className="text-teal-400"/> 1,500 Seats</div>
-                <div className="flex items-center gap-2"><Wifi size={16} className="text-teal-400"/> Fiber Optic</div>
-                <div className="flex items-center gap-2"><Wind size={16} className="text-teal-400"/> Fully AC</div>
+            <div 
+              onClick={() => navigate(`/venues/${venues[0].venueId}`)}
+              className="lg:col-span-2 rounded-2xl overflow-hidden relative shadow-md group cursor-pointer h-[400px]"
+            >
+              <div 
+                className="absolute inset-0 bg-slate-900 group-hover:scale-105 transition-transform duration-700"
+                style={venues[0].venueUrl ? { backgroundImage: `url(${venues[0].venueUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+              ></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+              
+              <div className="absolute bottom-0 left-0 p-8 w-full">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="bg-teal-400 text-[#0b1120] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                    Featured
+                  </span>
+                  <span className="flex items-center gap-1 text-white/90 text-xs font-medium">
+                    <MapPin size={12} /> {venues[0].location}
+                  </span>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
+                  {venues[0].name}
+                </h2>
+                <div className="flex flex-wrap items-center gap-6 text-white/90 text-sm font-medium">
+                  {venues[0].capacity > 0 && (
+                    <div className="flex items-center gap-2"><Users size={16} className="text-teal-400"/> {venues[0].capacity} Passengers</div>
+                  )}
+                  {venues[0].facilities && venues[0].facilities.length > 0 && (
+                     <div className="flex items-center gap-2"><Wind size={16} className="text-teal-400"/> {venues[0].facilities[0]}</div>
+                  )}
+                  <div className="flex items-center gap-2"><Building size={16} className="text-teal-400"/> Campus Facility</div>
+                </div>
               </div>
             </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col relative overflow-hidden">
+               <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-teal-700"></div>
+               <h3 className="text-xl font-bold text-[#1a1a1a] mb-2">Quick Availability</h3>
+               <p className="text-sm text-gray-500 mb-6">Current status of active venues</p>
+
+               <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                 {venues.slice(0, 4).map(v => (
+                   <div key={`quick-${v.venueId}`} onClick={() => navigate(`/venues/${v.venueId}`)} className="cursor-pointer hover:bg-gray-100 transition-colors flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
+                     <span className="text-sm font-bold text-gray-700 line-clamp-1 mr-2">{v.name}</span>
+                     <span className={`text-[9px] font-bold px-2 py-1 rounded uppercase tracking-wider whitespace-nowrap ${v.isBooked ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                       {v.isBooked ? 'Booked' : 'Available'}
+                     </span>
+                   </div>
+                 ))}
+               </div>
+            </div>
           </div>
-
-          {/* Quick Reservation Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col relative overflow-hidden">
-             {/* Left green bar */}
-             <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-teal-700"></div>
-             
-             <h3 className="text-xl font-bold text-[#1a1a1a] mb-2">Quick Reservation</h3>
-             <p className="text-sm text-gray-500 mb-6">Checking live availability for today, October 24th.</p>
-
-             <div className="space-y-4 flex-1">
-               <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
-                 <span className="text-sm font-bold text-gray-700">Faculty Board Room</span>
-                 <span className="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-2 py-1 rounded uppercase tracking-wider">Available</span>
-               </div>
-               <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
-                 <span className="text-sm font-bold text-gray-700">Science Lecture Hall</span>
-                 <span className="bg-red-100 text-red-700 text-[9px] font-bold px-2 py-1 rounded uppercase tracking-wider">Booked</span>
-               </div>
-               <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
-                 <span className="text-sm font-bold text-gray-700">Senate Hall</span>
-                 <span className="bg-emerald-100 text-emerald-700 text-[9px] font-bold px-2 py-1 rounded uppercase tracking-wider">Available</span>
-               </div>
-             </div>
-
-             <button className="w-full bg-[#0b1120] hover:bg-slate-800 text-white py-3.5 rounded-xl text-sm font-bold shadow-md transition-colors mt-6">
-               View All Calendars
-             </button>
-          </div>
-        </div>
+        )}
 
         {/* 3. Venue Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-          {venues.map((venue) => (
-            <div key={venue.id} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-shadow group flex flex-col cursor-pointer">
-              
-              {/* Image Section */}
-              <div className={`h-48 ${venue.imgBg} relative overflow-hidden`}>
-                <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-300"></div>
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-lg flex items-center gap-1 text-xs font-bold text-[#1a1a1a] shadow-sm">
-                  <Star size={12} className="text-amber-500 fill-amber-500" /> {venue.rating}
-                </div>
-              </div>
+          {loading ? (
+             <p className="col-span-3 text-center py-10 text-gray-500">Loading venues...</p>
+          ) : venues.length === 0 ? (
+             <p className="col-span-3 text-center py-10 text-gray-500">No venues found in the system.</p>
+          ) : venues.map((venue, i) => {
+            
+            let cap = venue.capacity || 'N/A';
+            let desc = venue.description || '';
+            if (desc.includes('|||')) {
+              const parts = desc.split('|||');
+              if(cap === 'N/A' || cap === 0) cap = parts[0];
+              desc = parts.slice(1).join('|||');
+            }
 
-              {/* Content Section */}
-              <div className="p-6 flex flex-col flex-1">
-                <div className="flex justify-between items-start gap-2 mb-2">
-                  <h3 className="font-bold text-lg text-[#1a1a1a] leading-tight">{venue.name}</h3>
-                  <span className={`${venue.statusColor} text-[8px] font-bold px-2 py-1 rounded uppercase tracking-wider whitespace-nowrap`}>
-                    {venue.status}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 leading-relaxed mb-5 flex-1">{venue.desc}</p>
+            return (
+              <div key={venue.venueId} onClick={() => navigate(`/venues/${venue.venueId}`)} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-shadow group flex flex-col cursor-pointer">
                 
-                {/* Features Row */}
-                <div className="flex items-center gap-4 text-xs font-medium text-gray-600 mb-6 pb-6 border-b border-gray-100">
-                  <div className="flex items-center gap-1.5"><Users size={14} className="text-gray-400"/> {venue.capacity}</div>
-                  <div className="flex items-center gap-1.5">{venue.features[0]} {venue.features[1]}</div>
-                  <div className="flex items-center gap-1.5">{venue.features[2]} {venue.features[3]}</div>
+                <div
+                  className={`h-48 relative overflow-hidden ${!venue.venueUrl ? ['bg-slate-700', 'bg-emerald-800', 'bg-amber-900', 'bg-indigo-900'][i%4] : 'bg-slate-800'}`}
+                  style={venue.venueUrl ? { backgroundImage: `url(${venue.venueUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-300"></div>
                 </div>
 
-                {/* Footer Row */}
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-[#1a1a1a] text-sm">{venue.price}</span>
-                  <button className="text-teal-600 hover:text-teal-800 text-xs font-bold flex items-center gap-1 transition-colors">
-                    Details <ArrowRight size={14} />
-                  </button>
+                <div className="p-6 flex flex-col flex-1">
+                  <div className="flex justify-between items-start gap-2 mb-2">
+                    <h3 className="font-bold text-lg text-[#1a1a1a] leading-tight break-words">{venue.name}</h3>
+                    <span className={`${venue.isBooked ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'} text-[8px] font-bold px-2 py-1 rounded uppercase tracking-wider whitespace-nowrap`}>
+                      {venue.isBooked ? 'BOOKED' : 'AVAILABLE'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed mb-4 flex-1 line-clamp-3">{desc}</p>
+                  
+                  <div className="flex flex-col gap-2 text-xs font-medium text-gray-600 mb-6 pb-6 border-b border-gray-100">
+                    <div className="flex items-center gap-2"><MapPin size={14} className="text-gray-400"/> {venue.location}</div>
+                    <div className="flex items-center gap-2"><Users size={14} className="text-gray-400"/> {cap} Passengers</div>
+                  </div>
+
+                  {venue.facilities && venue.facilities.length > 0 && (
+                     <div className="mb-4 flex flex-wrap gap-1.5">
+                       {venue.facilities.slice(0,3).map((f, idx) => (
+                          <span key={idx} className="bg-gray-100 text-gray-600 text-[9px] font-bold px-2 py-1 rounded uppercase tracking-wider">{f}</span>
+                       ))}
+                     </div>
+                  )}
+
+                  <div className="flex justify-end items-center mt-auto">
+                    <button className="text-teal-600 hover:text-teal-800 text-xs font-bold flex items-center gap-1 transition-colors">
+                      View Details <ArrowRight size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* 4. Call to Action Banner */}
         <div className="bg-[#0b1120] rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-lg relative overflow-hidden">
-          {/* Subtle background pattern/shape */}
           <div className="absolute -right-20 -top-20 w-64 h-64 bg-teal-900/30 rounded-full blur-3xl"></div>
           
           <div className="relative z-10 max-w-xl">
@@ -186,6 +179,12 @@ const Venues = () => {
         </div>
 
       </main>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+      `}} />
     </div>
   );
 };

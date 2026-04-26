@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  Info, Clock, Users, Megaphone, FileText, 
+  Info, Clock, Users, FileText, 
   MapPin, Plus, MoreVertical, Calendar,
   Award, Pencil, Check
 } from 'lucide-react';
@@ -8,11 +8,6 @@ import { useNavigate } from 'react-router-dom';
 
 const ManageEvent = () => {
   const navigate = useNavigate();
-
-  // Marketing Toggles State
-  const [socialMedia, setSocialMedia] = useState(true);
-  const [newsletter, setNewsletter] = useState(true);
-  const [campusDisplay, setCampusDisplay] = useState(false);
 
   return (
     <div className="bg-[#f8fafc] font-sans text-left min-h-screen pb-20">
@@ -37,7 +32,7 @@ const ManageEvent = () => {
           
           <div className="flex items-center gap-3 w-full md:w-auto">
             <button 
-              onClick={() => navigate('/event-details')}
+              onClick={() => navigate('/events')}
               className="flex-1 md:flex-none bg-white border border-gray-200 text-slate-700 px-6 py-3 rounded-xl text-sm font-bold shadow-sm hover:bg-gray-50 transition-colors"
             >
               Preview Page
@@ -216,7 +211,7 @@ const ManageEvent = () => {
 
                 <div>
                   <div className="flex justify-between text-xs font-bold text-slate-300 mb-2">
-                    <span className="flex items-center gap-2">Marketing & Swag</span> 
+                    <span className="flex items-center gap-2">Promo & Swag</span> 
                     <span className="flex items-center gap-2 text-white">LKR 35,000 <Pencil size={12} className="text-gray-500 cursor-pointer hover:text-white" /></span>
                   </div>
                   <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden"><div className="w-[15%] h-full bg-teal-400"></div></div>
@@ -246,42 +241,6 @@ const ManageEvent = () => {
                     <p className="text-[9px] font-medium text-gray-500 uppercase tracking-widest mt-0.5">VC_APPROVAL_DRAFT.PDF</p>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Marketing */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-              <h3 className="text-lg font-bold text-[#0b1120] mb-6 flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center"><Megaphone size={14} /></div>
-                Marketing
-              </h3>
-              
-              <div className="space-y-6">
-                
-                {/* Custom Toggle Switch for Social Media */}
-                <div className="flex justify-between items-center cursor-pointer" onClick={() => setSocialMedia(!socialMedia)}>
-                  <span className="text-sm font-medium text-slate-700">Social Media</span>
-                  <div className={`w-12 h-6 rounded-full p-1 transition-colors ${socialMedia ? 'bg-teal-600' : 'bg-gray-300'}`}>
-                    <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${socialMedia ? 'translate-x-6' : 'translate-x-0'}`}></div>
-                  </div>
-                </div>
-
-                {/* Custom Toggle Switch for Newsletter */}
-                <div className="flex justify-between items-center cursor-pointer" onClick={() => setNewsletter(!newsletter)}>
-                  <span className="text-sm font-medium text-slate-700">Newsletter</span>
-                  <div className={`w-12 h-6 rounded-full p-1 transition-colors ${newsletter ? 'bg-teal-600' : 'bg-gray-300'}`}>
-                    <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${newsletter ? 'translate-x-6' : 'translate-x-0'}`}></div>
-                  </div>
-                </div>
-
-                {/* Custom Toggle Switch for Campus Displays */}
-                <div className="flex justify-between items-center cursor-pointer" onClick={() => setCampusDisplay(!campusDisplay)}>
-                  <span className="text-sm font-medium text-slate-700">Campus Displays</span>
-                  <div className={`w-12 h-6 rounded-full p-1 transition-colors ${campusDisplay ? 'bg-teal-600' : 'bg-gray-300'}`}>
-                    <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${campusDisplay ? 'translate-x-6' : 'translate-x-0'}`}></div>
-                  </div>
-                </div>
-
               </div>
             </div>
 

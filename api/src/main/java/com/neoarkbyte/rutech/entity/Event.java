@@ -42,9 +42,6 @@ public class Event {
     private Map<String, Object> sponsorships;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    private Map<String, Object> marketing;
-
-    @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> committee;
 
     @ManyToOne
@@ -73,6 +70,8 @@ public class Event {
     private LocalDateTime updatedAt;
 
     private STATUS status;
+
+    private String rejectMessage;
 
     @PrePersist
     public void generateFields() {
