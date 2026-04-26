@@ -78,7 +78,51 @@ const OrganizationDetails = () => {
       .trim();
   };
 
-  const committeeEntries = org.committee ? Object.entries(org.committee) : [];
+  const renderCommitteeValue = (value) => {
+    if (value === null || value === undefined || value === '') {
+      return <span className="text-slate-400">N/A</span>;
+    }
+
+    if (Array.isArray(value)) {
+      return (
+        <ul className="space-y-1">
+          {value.map((item, idx) => (
+            <li key={idx} className="flex items-start gap-2 text-sm text-gray-900">
+              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0"></span>
+              <span className="flex-1">
+                {renderCommitteeValue(item)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+
+    if (typeof value === 'object') {
+      return (
+        <div className="space-y-2 text-sm text-gray-900">
+          {Object.entries(value).map(([subKey, subValue]) => (
+            <div key={subKey} className="flex flex-wrap gap-2 items-start">
+              <span className="font-semibold text-slate-500">{formatKey(subKey)}:</span>
+              <span className="flex-1">{renderCommitteeValue(subValue)}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <h4 className="font-bold text-gray-900 text-sm truncate" title={String(value)}>
+        {String(value)}
+      </h4>
+    );
+  };
+
+  const committeeEntries = org.committee
+    ? Array.isArray(org.committee)
+      ? org.committee.map((item, idx) => [String(idx + 1), item])
+      : Object.entries(org.committee)
+    : [];
   const hasCommittee = committeeEntries.length > 0;
 
   // Only show About section if at least one field has real data
@@ -286,24 +330,11 @@ const OrganizationDetails = () => {
                     return (
                       <div key={key} className="flex items-start gap-4 group">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm border-2 border-white shadow-sm transition-transform group-hover:scale-110 shrink-0 ${isName ? 'bg-teal-100 text-teal-700' : 'bg-slate-100 text-slate-600'}`}>
-                          {key.charAt(0).toUpperCase()}
+                          {String(key).charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{formatKey(key)}</p>
-                          {Array.isArray(value) ? (
-                            <ul className="space-y-1">
-                              {value.map((item, idx) => (
-                                <li key={idx} className="flex items-center gap-2 text-sm font-bold text-gray-900">
-                                  <span className="w-1 h-1 rounded-full bg-teal-500 shrink-0"></span>
-                                  {String(item)}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <h4 className="font-bold text-gray-900 text-sm truncate" title={String(value)}>
-                              {String(value)}
-                            </h4>
-                          )}
+                          {renderCommitteeValue(value)}
                         </div>
                       </div>
                     );

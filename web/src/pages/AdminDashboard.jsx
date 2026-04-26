@@ -359,14 +359,13 @@ const AdminDashboard = () => {
               </div>
 
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
                   <table className="w-full text-left text-sm whitespace-nowrap">
                     <thead className="bg-slate-50 border-b border-gray-100">
                       <tr>
                         <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Coordinator</th>
                         <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Type / Role</th>
                         <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact</th>
-                        <th className="py-5 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -392,12 +391,6 @@ const AdminDashboard = () => {
                           <td className="py-5 px-8">
                             <p className="text-xs text-slate-600 font-medium">{coord.email}</p>
                             <p className="text-[10px] text-gray-400 mt-1">{coord.telephone || 'No phone'}</p>
-                          </td>
-                          <td className="py-5 px-8 text-right">
-                            <div className="flex justify-end gap-3">
-                              <button className="text-gray-400 hover:text-slate-800 transition-colors"><Pencil size={16} /></button>
-                              <button className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
-                            </div>
                           </td>
                         </tr>
                       ))}

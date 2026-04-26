@@ -20,7 +20,7 @@ const ConfirmModal = ({
   onCancel,
   processing = false
 }) => {
-  const config = modal ?? {
+  const config = modal ? { confirmText, cancelText, ...modal, processing } : {
     open,
     title,
     description,

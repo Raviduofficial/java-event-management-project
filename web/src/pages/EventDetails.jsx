@@ -91,6 +91,13 @@ const EventDetails = () => {
     });
   };
 
+  const formatKey = (key) => {
+    return String(key)
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, (str) => str.toUpperCase())
+      .trim();
+  };
+
   const calculateTotalBudget = (data) => {
     if (!data) return 0;
     if (typeof data === 'number') return data;
@@ -103,6 +110,51 @@ const EventDetails = () => {
     }
     return 0;
   };
+
+  const renderCommitteeValue = (value) => {
+    if (value === null || value === undefined || value === '') {
+      return <span className="text-slate-400">N/A</span>;
+    }
+
+    if (Array.isArray(value)) {
+      return (
+        <ul className="space-y-1">
+          {value.map((item, idx) => (
+            <li key={idx} className="flex items-start gap-2 text-sm text-gray-900">
+              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0"></span>
+              <span className="flex-1">{renderCommitteeValue(item)}</span>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+
+    if (typeof value === 'object') {
+      return (
+        <div className="space-y-2 text-sm text-gray-900">
+          {Object.entries(value).map(([subKey, subValue]) => (
+            <div key={subKey} className="flex flex-wrap gap-2 items-start">
+              <span className="font-semibold text-slate-500">{formatKey(subKey)}:</span>
+              <span className="flex-1">{renderCommitteeValue(subValue)}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <span className="font-bold text-gray-900 text-sm truncate block" title={String(value)}>
+        {String(value)}
+      </span>
+    );
+  };
+
+  const committeeEntries = event.committee
+    ? Array.isArray(event.committee)
+      ? event.committee.map((item, idx) => [String(idx + 1), item])
+      : Object.entries(event.committee)
+    : [];
+  const hasCommittee = committeeEntries.length > 0;
 
   const renderBudgetRows = (data, level = 0) => {
     if (!data || typeof data !== 'object') return null;
@@ -424,31 +476,25 @@ const EventDetails = () => {
             </div>
 
             {/* Organizing Committee */}
-            {event.committee && Object.keys(event.committee).length > 0 && (
+            {hasCommittee && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 className="text-sm font-bold text-[#0b1120] mb-5 flex items-center gap-2">
                   <Users className="text-teal-600" size={16} /> Organizing Committee
                 </h3>
                 <div className="space-y-4">
-                  {Object.entries(event.committee).map(([role, name], idx) => {
-                    const displayName = typeof name === 'string' && name.trim()
-                      ? name.trim()
-                      : 'Unknown';
-                    const initial = displayName.charAt(0).toUpperCase();
-                    return (
-                      <div key={idx} className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs">
-                          {initial}
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm font-bold text-slate-800">{displayName}</p>
-                          <p className="text-[9px] font-bold text-teal-600 uppercase tracking-widest capitalize">
-                            {role.replace(/([A-Z])/g, ' $1').trim()}
-                          </p>
-                        </div>
+                  {committeeEntries.map(([role, member], idx) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs">
+                        {String(role).charAt(0).toUpperCase()}
                       </div>
-                    );
-                  })}
+                      <div className="text-left flex-1">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                          {formatKey(role)}
+                        </p>
+                        {renderCommitteeValue(member)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

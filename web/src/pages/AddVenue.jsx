@@ -85,26 +85,36 @@ const AddVenue = () => {
 
   const validateForm = () => {
     const errors = {};
+    const normalizeString = (value) => {
+      if (value === null || value === undefined) return '';
+      return typeof value === 'string' ? value : String(value);
+    };
 
-    if (!formData.name.trim()) {
+    const name = normalizeString(formData.name);
+    const location = normalizeString(formData.location);
+    const capacityValue = normalizeString(formData.capacity);
+    const description = normalizeString(formData.description);
+    const facilities = normalizeString(formData.facilities);
+
+    if (!name.trim()) {
       errors.name = 'Venue name is required.';
     }
 
-    if (!formData.location.trim()) {
+    if (!location.trim()) {
       errors.location = 'Venue location is required.';
     }
 
-    if (!formData.capacity.trim()) {
+    if (!capacityValue.trim()) {
       errors.capacity = 'Venue capacity is required.';
-    } else if (!/^[0-9]+$/.test(formData.capacity.trim()) || Number(formData.capacity) <= 0) {
+    } else if (!/^[0-9]+$/.test(capacityValue) || Number(capacityValue) <= 0) {
       errors.capacity = 'Capacity must be a positive number.';
     }
 
-    if (!formData.description.trim()) {
+    if (!description.trim()) {
       errors.description = 'Venue description is required.';
     }
 
-    if (!formData.facilities.trim()) {
+    if (!facilities.trim()) {
       errors.facilities = 'Enter at least one facility.';
     }
 
@@ -146,6 +156,7 @@ const AddVenue = () => {
       return;
     }
 
+    setFormErrors({});
     setLoading(true);
     try {
       const uploadedUrl = await uploadImage();
@@ -181,6 +192,7 @@ const AddVenue = () => {
   };
 
   const handleEdit = (venue) => {
+    setFormErrors({});
     setEditId(venue.venueId);
     let cap = venue.capacity || '';
     let desc = venue.description || '';
@@ -245,6 +257,7 @@ const AddVenue = () => {
 
   const handleCancelEdit = () => {
     setEditId(null);
+    setFormErrors({});
     setFormData({ name: '', location: '', capacity: '', description: '', venueUrl: '', facilities: '', booked: false });
     clearImage();
   };
