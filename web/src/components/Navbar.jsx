@@ -2,11 +2,13 @@ import React from 'react';
 import { Bell, ShieldCheck, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { success, error: toastError } = useToast();
 
   // 💡 Roles දෙකම අඳුරගන්නවා
   const isAdmin = user && user.role === 'ROLE_ADMIN_LEC';
@@ -17,9 +19,16 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   // Logout Function එක
-  const handleLogout = () => {
-    logout();
-    navigate('/login'); 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      success('Logged out successfully.');
+    } catch (err) {
+      console.error(err);
+      toastError('Unable to logout. Please try again.');
+    } finally {
+      navigate('/login');
+    }
   };
 
   return (
