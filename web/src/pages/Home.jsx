@@ -16,7 +16,7 @@ const Home = () => {
       try {
         const response = await api.get("/api/events");
         const allEvents = response.data.data || [];
-        const approvedEvents = allEvents.filter(event => event.status === 'APPROVED');
+        const approvedEvents = allEvents.filter(event => event.status === 'APPROVED' && event.startTime);
         setEvents(approvedEvents);
         setLoading(false);
       } catch (error) {
@@ -51,7 +51,7 @@ const Home = () => {
   const getEventsForDay = (day) => {
     if (!day) return [];
     return events.filter(event => {
-      const eventDate = new Date(event.startTime.replace(' ', 'T'));
+      const eventDate = new Date(event.startTime?.replace(' ', 'T') || '');
       return eventDate.getDate() === day &&
              eventDate.getMonth() === month &&
              eventDate.getFullYear() === year;
@@ -60,29 +60,33 @@ const Home = () => {
 
   const isPastEvent = (event) => {
     const now = new Date();
-    const startTime = new Date(event.startTime.replace(' ', 'T'));
+    const startTime = new Date(event.startTime?.replace(' ', 'T') || '');
     return now > startTime;
   };
 
   const upcomingEvents = events
-    .filter(e => new Date(e.startTime.replace(' ', 'T')) >= new Date())
-    .sort((a, b) => new Date(a.startTime.replace(' ', 'T')) - new Date(b.startTime.replace(' ', 'T')))
+    .filter(e => e.startTime && new Date(e.startTime.replace(' ', 'T')) >= new Date())
+    .sort((a, b) => {
+      const dateA = new Date(a.startTime?.replace(' ', 'T') || 0);
+      const dateB = new Date(b.startTime?.replace(' ', 'T') || 0);
+      return dateA - dateB;
+    })
     .slice(0, 3);
 
   const todayEvents = events.filter(event => {
     const now = new Date();
-    const eventDate = new Date(event.startTime.replace(' ', 'T'));
+    const eventDate = new Date(event.startTime?.replace(' ', 'T') || '');
     return eventDate.getDate() === now.getDate() &&
            eventDate.getMonth() === now.getMonth() &&
            eventDate.getFullYear() === now.getFullYear();
   });
 
   const formatTime = (dateString) => {
-    return new Date(dateString.replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return new Date(dateString?.replace(' ', 'T') || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const formatDateShort = (dateString) => {
-    return new Date(dateString.replace(' ', 'T')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(dateString?.replace(' ', 'T') || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const isToday = (day) => {

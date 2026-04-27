@@ -1,22 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, Calendar, ClipboardList, CheckCircle, 
+import {
+  Plus, Calendar, ClipboardList, CheckCircle,
   MoreVertical, CheckCircle2, User, AlertTriangle,
   Pencil, Trash2, FileText, Download, Loader2, Eye,
   Upload, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import ConfirmModal, { defaultConfirmModalState } from '../components/ConfirmModal';
 import api from '../api/axiosConfig';
 
 const CoordinatorDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { success, error: toastError } = useToast();
 
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('PENDING'); // PENDING, APPROVED, REJECTED
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(defaultConfirmModalState);
+  const [processingConfirm, setProcessingConfirm] = useState(false);
 
   // Letter Submission State
   const [letterForm, setLetterForm] = useState({
@@ -55,42 +60,67 @@ const CoordinatorDashboard = () => {
     setOpenDropdownId(openDropdownId === id ? null : id);
   };
 
-  const handleDeleteEvent = async (eventId) => {
-    if (!window.confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
-    
+  const openConfirmModal = ({ title, description, confirmText, action }) => {
+    setConfirmModal({ open: true, title, description, confirmText, action });
+  };
+
+  const closeConfirmModal = () => {
+    if (processingConfirm) return;
+    setConfirmModal(defaultConfirmModalState);
+  };
+
+  const runConfirmAction = async () => {
+    if (!confirmModal.action) return;
+    setProcessingConfirm(true);
     try {
-      await api.delete(`/api/events/${eventId}`, { withCredentials: true });
-      setEvents(events.filter(e => e.eventId !== eventId));
+      await confirmModal.action();
+      closeConfirmModal();
     } catch (error) {
-      console.error("Error deleting event:", error);
-      alert("Failed to delete event.");
+      console.error("Confirmation action failed:", error);
+      toastError("The requested action could not be completed.");
+    } finally {
+      setProcessingConfirm(false);
     }
   };
 
-  const handleDeleteLetter = async (letterId, eventId) => {
-    if (!window.confirm("Delete this permission letter?")) return;
+  const handleDeleteEvent = (eventId) => {
+    openConfirmModal({
+      title: 'Delete Event',
+      description: 'Are you sure you want to delete this event? This action cannot be undone.',
+      confirmText: 'Delete Event',
+      action: async () => {
+        await api.delete(`/api/events/${eventId}`, { withCredentials: true });
+        setEvents(events.filter(e => e.eventId !== eventId));
+        success('Event deleted successfully.');
+      }
+    });
+  };
 
-    try {
-      await api.delete(`/api/letters/${letterId}`, { withCredentials: true });
-      setEvents(events.map(event => {
-        if (event.eventId === eventId) {
-          return {
-            ...event,
-            permissionLetters: event.permissionLetters.filter(l => l.letterId !== letterId)
-          };
-        }
-        return event;
-      }));
-    } catch (error) {
-      console.error("Error deleting letter:", error);
-      alert("Failed to delete letter.");
-    }
+  const handleDeleteLetter = (letterId, eventId) => {
+    openConfirmModal({
+      title: 'Delete Permission Letter',
+      description: 'Delete this permission letter? This action cannot be undone.',
+      confirmText: 'Delete Letter',
+      action: async () => {
+        await api.delete(`/api/letters/${letterId}`, { withCredentials: true });
+        setEvents(events.map(event => {
+          if (event.eventId === eventId) {
+            return {
+              ...event,
+              permissionLetters: event.permissionLetters.filter(l => l.letterId !== letterId)
+            };
+          }
+          return event;
+        }));
+        success('Permission letter deleted successfully.');
+      }
+    });
   };
 
   const handleAddLetter = async (e) => {
     e.preventDefault();
     if (!letterForm.eventId || !selectedFile) {
-      alert("Please select an event and upload a letter file.");
+      toastError("Please select an event and upload a letter file.");
       return;
     }
 
@@ -99,12 +129,12 @@ const CoordinatorDashboard = () => {
       // 1. Upload File
       const formData = new FormData();
       formData.append('file', selectedFile);
-      
+
       const uploadRes = await api.post('/api/files/upload', formData, {
         withCredentials: true,
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
+
       const filename = uploadRes.data.data;
       const letterUrl = `http://localhost:8080/api/files/cdn/${filename}`;
 
@@ -115,13 +145,13 @@ const CoordinatorDashboard = () => {
       }, { withCredentials: true });
 
       // 3. Refresh and Reset
-      alert("Letter submitted successfully!");
+      success("Letter submitted successfully!");
       setLetterForm({ letterTitle: '', letterDescription: '', eventId: '' });
       setSelectedFile(null);
       fetchCoordinatorEvents();
     } catch (error) {
       console.error("Error submitting letter:", error);
-      alert("Failed to submit letter.");
+      toastError("Failed to submit letter.");
     } finally {
       setSubmittingLetter(false);
     }
@@ -146,16 +176,16 @@ const CoordinatorDashboard = () => {
 
   return (
     <div className="bg-[#f8fafc] font-sans text-left min-h-screen pb-20 relative">
-      
+
       {openDropdownId && (
-        <div 
-          className="fixed inset-0 z-40" 
+        <div
+          className="fixed inset-0 z-40"
           onClick={() => setOpenDropdownId(null)}
         ></div>
       )}
 
       <main className="max-w-7xl mx-auto p-8 mt-4 relative">
-        
+
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
           <div>
@@ -164,8 +194,8 @@ const CoordinatorDashboard = () => {
               Manage your event submissions and tracked approvals in one place.
             </p>
           </div>
-          
-          <button 
+
+          <button
             onClick={() => navigate('/coordinator/events/add')}
             className="mt-4 md:mt-0 flex items-center gap-2 bg-[#0b1120] hover:bg-slate-800 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-md transition-all active:scale-95"
           >
@@ -209,14 +239,14 @@ const CoordinatorDashboard = () => {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          
+
           {/* Left Column: Recent Submissions */}
           <div className="lg:col-span-2 space-y-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h2 className="text-xl font-bold text-[#0b1120]">Your Event Repository</h2>
               <div className="flex bg-slate-200/50 p-1 rounded-xl border border-slate-200">
                 {['PENDING', 'APPROVED', 'REJECTED'].map(status => (
-                  <button 
+                  <button
                     key={status}
                     onClick={() => setActiveTab(status)}
                     className={`px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all ${activeTab === status ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
@@ -226,8 +256,8 @@ const CoordinatorDashboard = () => {
                 ))}
               </div>
             </div>
-            
-            <div className="space-y-4">
+
+            <div className="space-y-4 max-h-[68vh] overflow-y-auto pr-2">
               {filteredEvents.length > 0 ? filteredEvents.map((event) => (
                 <div key={event.eventId} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden hover:border-teal-100 transition-all group">
                   <div className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -244,36 +274,39 @@ const CoordinatorDashboard = () => {
                         <p className="text-xs text-slate-500 mt-1 line-clamp-1">{event.about || 'No description provided'}</p>
                         <div className="mt-2 flex items-center gap-3">
                           <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{new Date(event.createdAt).toLocaleDateString()}</span>
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest ${
-                            event.status === 'APPROVED' ? 'bg-teal-50 text-teal-600' : 
-                            event.status === 'REJECTED' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
-                          }`}>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest ${event.status === 'APPROVED' ? 'bg-teal-50 text-teal-600' :
+                              event.status === 'REJECTED' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
+                            }`}>
                             {event.status}
                           </span>
                         </div>
+                        {event.status === 'REJECTED' && event.rejectMessage && (
+                          <p className="mt-3 text-[10px] text-red-600 font-medium leading-relaxed bg-red-50 border border-red-100 rounded-2xl p-3">
+                            {event.rejectMessage}
+                          </p>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-                      <button 
+                      <button
                         onClick={() => navigate(`/events/${event.eventId}`)}
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:bg-slate-50 hover:text-slate-800 transition-colors"
                       >
                         <Eye size={18} />
                       </button>
-                      <button 
-                        onClick={() => {
-                          if (event.status === 'APPROVED' || event.status === 'PENDING') {
-                            navigate(`/coordinator/events/${event.eventId}/modify`);
-                          } else {
-                            alert("Only approved or pending events can be modified.");
-                          }
-                        }}
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:bg-slate-50 hover:text-teal-700 transition-colors"
-                      >
-                        <Pencil size={18} />
-                      </button>
-                      <button 
+                      
+                      {event.status === 'APPROVED' && (
+                        <button 
+                          onClick={() => navigate(`/coordinator/events/${event.eventId}/modify`)}
+                          className="w-10 h-10 rounded-xl flex items-center justify-center text-teal-600 hover:bg-teal-50 transition-colors"
+                          title="Modify Event"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                      )}
+
+                      <button
                         onClick={() => handleDeleteEvent(event.eventId)}
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
                       >
@@ -294,22 +327,26 @@ const CoordinatorDashboard = () => {
                             </div>
                             <div>
                               <p className="text-xs font-bold text-slate-700 line-clamp-1">{letter.letterTitle}</p>
-                              <span className={`text-[8px] font-black uppercase tracking-widest ${
-                                letter.status === 'APPROVED' ? 'text-teal-600' : 
-                                letter.status === 'REJECTED' ? 'text-red-500' : 'text-amber-500'
-                              }`}>
+                              <span className={`text-[8px] font-black uppercase tracking-widest ${letter.status === 'APPROVED' ? 'text-teal-600' :
+                                  letter.status === 'REJECTED' ? 'text-red-500' : 'text-amber-500'
+                                }`}>
                                 {letter.status}
                               </span>
+                              {letter.status === 'REJECTED' && letter.rejectMessage && (
+                                <p className="mt-3 text-[10px] text-red-600 font-medium leading-relaxed bg-red-50 border border-red-100 rounded-2xl p-3">
+                                  {letter.rejectMessage}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <a 
+                            <a
                               href={letter.letterUrl} target="_blank" rel="noreferrer"
                               className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 p-2 rounded-lg transition-colors"
                             >
                               <Download size={14} />
                             </a>
-                            <button 
+                            <button
                               onClick={() => handleDeleteLetter(letter.letterId, event.eventId)}
                               className="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition-colors"
                             >
@@ -342,13 +379,13 @@ const CoordinatorDashboard = () => {
                 </div>
                 <h2 className="text-xl font-bold text-[#0b1120]">Submit Letter</h2>
               </div>
-              
+
               <form onSubmit={handleAddLetter} className="space-y-5">
                 <div>
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Link to Event</label>
-                  <select 
+                  <select
                     value={letterForm.eventId}
-                    onChange={(e) => setLetterForm({...letterForm, eventId: e.target.value})}
+                    onChange={(e) => setLetterForm({ ...letterForm, eventId: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all cursor-pointer"
                     required
                   >
@@ -361,10 +398,10 @@ const CoordinatorDashboard = () => {
 
                 <div>
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Letter Title</label>
-                  <input 
+                  <input
                     type="text"
                     value={letterForm.letterTitle}
-                    onChange={(e) => setLetterForm({...letterForm, letterTitle: e.target.value})}
+                    onChange={(e) => setLetterForm({ ...letterForm, letterTitle: e.target.value })}
                     placeholder="e.g. Permission for Venue"
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
                     required
@@ -373,9 +410,9 @@ const CoordinatorDashboard = () => {
 
                 <div>
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Description</label>
-                  <textarea 
+                  <textarea
                     value={letterForm.letterDescription}
-                    onChange={(e) => setLetterForm({...letterForm, letterDescription: e.target.value})}
+                    onChange={(e) => setLetterForm({ ...letterForm, letterDescription: e.target.value })}
                     placeholder="Briefly describe the purpose..."
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all h-24 resize-none"
                     required
@@ -385,7 +422,7 @@ const CoordinatorDashboard = () => {
                 <div>
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Upload PDF Letter</label>
                   <div className={`relative group transition-all ${selectedFile ? 'border-teal-500 bg-teal-50/30' : 'border-slate-200 hover:border-teal-200 bg-slate-50'} border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer`}>
-                    <input 
+                    <input
                       type="file"
                       accept=".pdf"
                       onChange={(e) => setSelectedFile(e.target.files[0])}
@@ -397,7 +434,7 @@ const CoordinatorDashboard = () => {
                           <CheckCircle size={16} />
                           <span className="text-xs font-bold truncate">{selectedFile.name}</span>
                         </div>
-                        <button 
+                        <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
                           className="p-1 hover:bg-teal-100 rounded-md relative z-20"
@@ -416,7 +453,7 @@ const CoordinatorDashboard = () => {
                   </div>
                 </div>
 
-                <button 
+                <button
                   type="submit"
                   disabled={submittingLetter}
                   className="w-full bg-[#0b1120] hover:bg-slate-800 disabled:bg-slate-400 text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 mt-4"
@@ -442,6 +479,13 @@ const CoordinatorDashboard = () => {
 
         </div>
       </main>
+
+      <ConfirmModal
+        modal={confirmModal}
+        onConfirm={runConfirmAction}
+        onCancel={closeConfirmModal}
+        processing={processingConfirm}
+      />
     </div>
   );
 };

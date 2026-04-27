@@ -2,6 +2,7 @@ package com.neoarkbyte.rutech.controller;
 
 import com.neoarkbyte.rutech.dto.ApiResponse;
 import com.neoarkbyte.rutech.dto.ResponseUtil;
+import com.neoarkbyte.rutech.dto.event.RejectRequestDTO;
 import com.neoarkbyte.rutech.dto.letter.LetterCreateDTO;
 import com.neoarkbyte.rutech.dto.letter.LetterResponseDTO;
 import com.neoarkbyte.rutech.service.impl.LetterService;
@@ -50,8 +51,8 @@ public class LetterController {
     }
 
     @PatchMapping("/{id}/rejected")
-    public ResponseEntity<ApiResponse<LetterResponseDTO>> rejectLetter(@PathVariable String id) {
-        LetterResponseDTO response = letterService.rejectLetter(id);
+    public ResponseEntity<ApiResponse<LetterResponseDTO>> rejectLetter(@PathVariable String id, @RequestBody RejectRequestDTO rejectDTO) {
+        LetterResponseDTO response = letterService.rejectLetter(id, rejectDTO.getMessage());
         return ResponseEntity.ok(ResponseUtil.success("Letter rejected  successfully", response, null));
     }
 

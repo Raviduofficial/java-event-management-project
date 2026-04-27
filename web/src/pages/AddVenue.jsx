@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Pencil, Trash2, Building, Users, MapPin, UploadCloud, X } from 'lucide-react';
 import api from '../api/axiosConfig';
+import { useToast } from '../contexts/ToastContext';
+import ConfirmModal, { defaultConfirmModalState } from '../components/ConfirmModal';
 
 const BASE_URL = 'http://localhost:8080';
 
 const AddVenue = () => {
   const [venues, setVenues] = useState([]);
+  const [confirmModal, setConfirmModal] = useState(defaultConfirmModalState);
+  const [processingConfirm, setProcessingConfirm] = useState(false);
+  const { success, error: toastError } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -13,13 +18,14 @@ const AddVenue = () => {
     description: '',
     venueUrl: '',
     facilities: '',
-    isBooked: false
+    booked: false
   });
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageUploading, setImageUploading] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -33,6 +39,7 @@ const AddVenue = () => {
       setVenues(res.data.data);
     } catch (error) {
       console.error("Failed to fetch venues", error);
+      toastError('Failed to fetch venues.');
     }
   };
 
@@ -42,6 +49,7 @@ const AddVenue = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    setFormErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
   const handleImageSelect = (file) => {
@@ -71,7 +79,50 @@ const AddVenue = () => {
     setImageFile(null);
     setImagePreview(null);
     setFormData(prev => ({ ...prev, venueUrl: '' }));
+    setFormErrors((prev) => ({ ...prev, venueUrl: undefined }));
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    const normalizeString = (value) => {
+      if (value === null || value === undefined) return '';
+      return typeof value === 'string' ? value : String(value);
+    };
+
+    const name = normalizeString(formData.name);
+    const location = normalizeString(formData.location);
+    const capacityValue = normalizeString(formData.capacity);
+    const description = normalizeString(formData.description);
+    const facilities = normalizeString(formData.facilities);
+
+    if (!name.trim()) {
+      errors.name = 'Venue name is required.';
+    }
+
+    if (!location.trim()) {
+      errors.location = 'Venue location is required.';
+    }
+
+    if (!capacityValue.trim()) {
+      errors.capacity = 'Venue capacity is required.';
+    } else if (!/^[0-9]+$/.test(capacityValue) || Number(capacityValue) <= 0) {
+      errors.capacity = 'Capacity must be a positive number.';
+    }
+
+    if (!description.trim()) {
+      errors.description = 'Venue description is required.';
+    }
+
+    if (!facilities.trim()) {
+      errors.facilities = 'Enter at least one facility.';
+    }
+
+    if (imageFile && imageFile.size > 5 * 1024 * 1024) {
+      errors.venueUrl = 'Image must be smaller than 5MB.';
+    }
+
+    return errors;
   };
 
   const uploadImage = async () => {
@@ -88,6 +139,7 @@ const AddVenue = () => {
       return `${BASE_URL}/api/files/cdn/${filename}`;
     } catch (err) {
       console.error("Image upload failed", err);
+      toastError('Image upload failed. Retaining existing image if available.');
       return formData.venueUrl;
     } finally {
       setImageUploading(false);
@@ -96,6 +148,15 @@ const AddVenue = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const errors = validateForm();
+    if (Object.keys(errors).length) {
+      setFormErrors(errors);
+      toastError('Please fix the highlighted fields before saving.');
+      return;
+    }
+
+    setFormErrors({});
     setLoading(true);
     try {
       const uploadedUrl = await uploadImage();
@@ -107,27 +168,31 @@ const AddVenue = () => {
         description: formData.description,
         venueUrl: uploadedUrl,
         facilities: formData.facilities.split(',').map(f => f.trim()).filter(Boolean),
-        isBooked: formData.isBooked
+        booked: formData.booked
       };
 
       if (editId) {
         await api.put(`/api/venues/${editId}`, payload, { withCredentials: true });
+        success('Venue updated successfully.');
       } else {
         await api.post('/api/venues', payload, { withCredentials: true });
+        success('Venue created successfully.');
       }
 
-      setFormData({ name: '', location: '', capacity: '', description: '', venueUrl: '', facilities: '', isBooked: false });
+      setFormData({ name: '', location: '', capacity: '', description: '', venueUrl: '', facilities: '', booked: false });
       setEditId(null);
       clearImage();
       fetchVenues();
     } catch (error) {
       console.error("Failed to save venue", error);
+      toastError('Failed to save venue. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleEdit = (venue) => {
+    setFormErrors({});
     setEditId(venue.venueId);
     let cap = venue.capacity || '';
     let desc = venue.description || '';
@@ -143,7 +208,7 @@ const AddVenue = () => {
       description: desc,
       venueUrl: venue.venueUrl || '',
       facilities: venue.facilities ? venue.facilities.join(', ') : '',
-      isBooked: venue.isBooked
+      booked: venue.booked
     });
     // Show existing image as preview
     if (venue.venueUrl) {
@@ -154,26 +219,52 @@ const AddVenue = () => {
     setImageFile(null);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this venue?")) return;
+  const openConfirmModal = ({ title, description, confirmText, action }) => {
+    setConfirmModal({ open: true, title, description, confirmText, action });
+  };
+
+  const closeConfirmModal = () => {
+    if (processingConfirm) return;
+    setConfirmModal(defaultConfirmModalState);
+  };
+
+  const runConfirmAction = async () => {
+    if (!confirmModal.action) return;
+    setProcessingConfirm(true);
     try {
-      await api.delete(`/api/venues/${id}`, { withCredentials: true });
-      fetchVenues();
+      await confirmModal.action();
+      closeConfirmModal();
     } catch (error) {
-      console.error("Failed to delete venue", error);
+      console.error("Confirmation action failed:", error);
+      toastError('Failed to perform the action.');
+    } finally {
+      setProcessingConfirm(false);
     }
+  };
+
+  const handleDelete = (id) => {
+    openConfirmModal({
+      title: 'Delete Venue',
+      description: 'Are you sure you want to delete this venue? This action cannot be undone.',
+      confirmText: 'Delete Venue',
+      action: async () => {
+        await api.delete(`/api/venues/${id}`, { withCredentials: true });
+        fetchVenues();
+        success('Venue deleted successfully.');
+      }
+    });
   };
 
   const handleCancelEdit = () => {
     setEditId(null);
-    setFormData({ name: '', location: '', capacity: '', description: '', venueUrl: '', facilities: '', isBooked: false });
+    setFormErrors({});
+    setFormData({ name: '', location: '', capacity: '', description: '', venueUrl: '', facilities: '', booked: false });
     clearImage();
   };
 
   return (
     <div className="bg-[#fafafa] font-sans text-left min-h-screen pb-20">
       <main className="max-w-7xl mx-auto p-8 mt-4">
-        
         <div className="mb-10">
           <h1 className="text-4xl font-extrabold text-[#1a1a1a] mb-3 tracking-tight">Venue Management</h1>
           <p className="text-gray-600 text-sm max-w-2xl leading-relaxed">
@@ -182,7 +273,7 @@ const AddVenue = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          
+
           {/* Form Column */}
           <div className="lg:col-span-1 space-y-6">
             <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
@@ -224,34 +315,38 @@ const AddVenue = () => {
                   onChange={handleFileInputChange}
                   className="hidden"
                 />
+                {formErrors.venueUrl && <p className="mt-2 text-xs text-red-600">{formErrors.venueUrl}</p>}
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-2">Venue Name</label>
                 <input type="text" name="name" value={formData.name} onChange={handleInputChange} required placeholder="e.g. Main Auditorium"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all" />
+                  className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all ${formErrors.name ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+                {formErrors.name && <p className="mt-2 text-xs text-red-600">{formErrors.name}</p>}
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-2">Location</label>
                 <input type="text" name="location" value={formData.location} onChange={handleInputChange} required placeholder="e.g. Faculty of Science"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all" />
+                  className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all ${formErrors.location ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+                {formErrors.location && <p className="mt-2 text-xs text-red-600">{formErrors.location}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-2">Capacity</label>
                   <input type="number" name="capacity" value={formData.capacity} onChange={handleInputChange} required placeholder="e.g. 500"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all" />
+                    className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all ${formErrors.capacity ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+                  {formErrors.capacity && <p className="mt-2 text-xs text-red-600">{formErrors.capacity}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-2">Status</label>
                   <div className="flex items-center h-[46px] gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 cursor-pointer"
-                    onClick={() => setFormData(p => ({...p, isBooked: !p.isBooked}))}>
-                    <div className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${formData.isBooked ? 'bg-red-500 border-red-500' : 'bg-white border-gray-300'}`}>
-                      {formData.isBooked && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                    onClick={() => setFormData(p => ({ ...p, booked: !p.booked }))}>
+                    <div className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${formData.booked ? 'bg-red-500 border-red-500' : 'bg-white border-gray-300'}`}>
+                      {formData.booked && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                     </div>
-                    <span className="text-xs font-semibold text-slate-700">{formData.isBooked ? 'Booked' : 'Available'}</span>
+                    <span className="text-xs font-semibold text-slate-700">{formData.booked ? 'Booked' : 'Available'}</span>
                   </div>
                 </div>
               </div>
@@ -259,14 +354,16 @@ const AddVenue = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-2">Facilities (Comma Separated)</label>
                 <input type="text" name="facilities" value={formData.facilities} onChange={handleInputChange} placeholder="WiFi, Projector, AC..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all" />
+                  className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all ${formErrors.facilities ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+                {formErrors.facilities && <p className="mt-2 text-xs text-red-600">{formErrors.facilities}</p>}
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-800 mb-2">Description</label>
                 <textarea name="description" value={formData.description} onChange={handleInputChange} required
                   placeholder="Brief description of the venue..." rows={3}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all resize-none" />
+                  className={`w-full bg-gray-50 border rounded-xl px-4 py-3 text-sm focus:outline-none focus:bg-white focus:border-teal-500 transition-all resize-none ${formErrors.description ? 'border-red-400 bg-red-50' : 'border-gray-200'}`} />
+                {formErrors.description && <p className="mt-2 text-xs text-red-600">{formErrors.description}</p>}
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
@@ -290,7 +387,7 @@ const AddVenue = () => {
               <h2 className="text-lg font-bold text-[#1a1a1a]">Existing Venues</h2>
               <span className="bg-teal-100 text-teal-800 text-xs font-bold px-3 py-1 rounded-full">{venues.length} Total</span>
             </div>
-            
+
             <div className="space-y-4 max-h-[680px] overflow-y-auto pr-2 custom-scrollbar">
               {venues.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm">
@@ -327,8 +424,8 @@ const AddVenue = () => {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-1">
                               <h4 className="font-bold text-slate-800 text-base">{venue.name}</h4>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${venue.isBooked ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                {venue.isBooked ? 'Booked' : 'Available'}
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${venue.booked ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                {venue.booked ? 'Booked' : 'Available'}
                               </span>
                             </div>
                             <p className="text-sm text-gray-500 mb-2 flex items-center gap-4">
@@ -337,13 +434,13 @@ const AddVenue = () => {
                             </p>
                             {venue.facilities && venue.facilities.length > 0 && (
                               <div className="flex flex-wrap gap-1.5">
-                                {venue.facilities.slice(0,3).map((f, idx) => (
+                                {venue.facilities.slice(0, 3).map((f, idx) => (
                                   <span key={idx} className="bg-gray-100 text-gray-600 text-[9px] font-bold px-2 py-1 rounded uppercase tracking-wider">{f}</span>
                                 ))}
                               </div>
                             )}
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             <button onClick={() => handleEdit(venue)}
                               className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors border border-transparent hover:border-teal-200" title="Edit">
@@ -365,12 +462,20 @@ const AddVenue = () => {
 
         </div>
       </main>
-      
-      <style dangerouslySetInnerHTML={{__html: `
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
       `}} />
+
+      <ConfirmModal
+        modal={confirmModal}
+        onConfirm={runConfirmAction}
+        onCancel={closeConfirmModal}
+        processing={processingConfirm}
+      />
     </div>
   );
 };

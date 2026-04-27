@@ -4,6 +4,7 @@ import com.neoarkbyte.rutech.dto.ApiResponse;
 import com.neoarkbyte.rutech.dto.ResponseUtil;
 import com.neoarkbyte.rutech.dto.event.EventCreateDTO;
 import com.neoarkbyte.rutech.dto.event.EventResponseDTO;
+import com.neoarkbyte.rutech.dto.event.RejectRequestDTO;
 import com.neoarkbyte.rutech.service.impl.EventService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -56,8 +57,8 @@ public class EventController {
     }
 
     @PatchMapping("/{id}/rejected")
-    public ResponseEntity<ApiResponse<EventResponseDTO>> rejectEvent(@PathVariable String id) {
-        EventResponseDTO response = eventService.rejectEvent(id);
+    public ResponseEntity<ApiResponse<EventResponseDTO>> rejectEvent(@PathVariable String id, @RequestBody RejectRequestDTO rejectDTO) {
+        EventResponseDTO response = eventService.rejectEvent(id, rejectDTO.getMessage());
         return ResponseEntity.ok(ResponseUtil.success("Event rejected successfully", response, null));
     }
 

@@ -10,4 +10,5 @@ public class LetterResponseDTO {
     private String letterDescription;
     private String letterUrl;
     private STATUS status;
+    private String rejectMessage;
 }

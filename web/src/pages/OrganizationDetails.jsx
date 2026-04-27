@@ -1,22 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
-import { Building2, ArrowLeft, Mail, Phone, MapPin, Info } from 'lucide-react';
+import { Building2, ArrowLeft, Mail, Phone, MapPin, Info, Eye, Calendar, Loader2 } from 'lucide-react';
 
 const OrganizationDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [org, setOrg] = useState(null);
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [eventsLoading, setEventsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchOrgDetails = async () => {
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        const res = await api.get(`/api/auth/org/${id}`, { withCredentials: true });
-        if (res.data && res.data.data) {
-          setOrg(res.data.data);
+        const orgRes = await api.get(`/api/auth/org/${id}`, { withCredentials: true });
+        if (orgRes.data && orgRes.data.data) {
+          setOrg(orgRes.data.data);
           setError(null);
+          
+          // Fetch events after org is confirmed
+          setEventsLoading(true);
+          try {
+            const eventsRes = await api.get(`/api/events/coordinator/${id}`, { withCredentials: true });
+            const allEvents = eventsRes.data.data || [];
+            // User requested: "just retrive all the approved events"
+            setEvents(allEvents.filter(e => e.status === 'APPROVED'));
+          } catch (evErr) {
+            console.error('Failed to fetch events:', evErr);
+          } finally {
+            setEventsLoading(false);
+          }
         } else {
           setError('Organization not found');
         }
@@ -27,7 +43,7 @@ const OrganizationDetails = () => {
         setLoading(false);
       }
     };
-    fetchOrgDetails();
+    fetchData();
   }, [id]);
 
   if (loading) {
@@ -62,7 +78,51 @@ const OrganizationDetails = () => {
       .trim();
   };
 
-  const committeeEntries = org.committee ? Object.entries(org.committee) : [];
+  const renderCommitteeValue = (value) => {
+    if (value === null || value === undefined || value === '') {
+      return <span className="text-slate-400">N/A</span>;
+    }
+
+    if (Array.isArray(value)) {
+      return (
+        <ul className="space-y-1">
+          {value.map((item, idx) => (
+            <li key={idx} className="flex items-start gap-2 text-sm text-gray-900">
+              <span className="mt-1 w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0"></span>
+              <span className="flex-1">
+                {renderCommitteeValue(item)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+
+    if (typeof value === 'object') {
+      return (
+        <div className="space-y-2 text-sm text-gray-900">
+          {Object.entries(value).map(([subKey, subValue]) => (
+            <div key={subKey} className="flex flex-wrap gap-2 items-start">
+              <span className="font-semibold text-slate-500">{formatKey(subKey)}:</span>
+              <span className="flex-1">{renderCommitteeValue(subValue)}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <h4 className="font-bold text-gray-900 text-sm truncate" title={String(value)}>
+        {String(value)}
+      </h4>
+    );
+  };
+
+  const committeeEntries = org.committee
+    ? Array.isArray(org.committee)
+      ? org.committee.map((item, idx) => [String(idx + 1), item])
+      : Object.entries(org.committee)
+    : [];
   const hasCommittee = committeeEntries.length > 0;
 
   // Only show About section if at least one field has real data
@@ -134,9 +194,7 @@ const OrganizationDetails = () => {
             >
               <ArrowLeft size={15} /> Back
             </button>
-            <button className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 transition shadow-sm">
-              <span>➕</span> Follow
-            </button>
+
           </div>
         </div>
 
@@ -191,18 +249,68 @@ const OrganizationDetails = () => {
               </div>
             )}
 
-            {/* Events — clearly marked as placeholder, no fake data */}
+            {/* Society Events */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
               <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <span className="text-teal-500 bg-teal-50 p-2 rounded-lg">📅</span> Society Events
+                  <span className="text-teal-500 bg-teal-50 p-2 rounded-lg">📅</span> Published Events
                 </h2>
+                {events.length > 0 && (
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                    {events.length} Approved
+                  </span>
+                )}
               </div>
-              <div className="text-center py-10">
-                <div className="text-4xl mb-3">📭</div>
-                <h3 className="font-bold text-gray-700 mb-1">No Events Yet</h3>
-                <p className="text-sm text-gray-500">Events organized by this society will appear here once scheduled.</p>
-              </div>
+
+              {eventsLoading ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="animate-spin text-teal-600 mb-2" size={24} />
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Scanning event log...</p>
+                </div>
+              ) : events.length > 0 ? (
+                <div className="space-y-4">
+                  {events.map((event) => (
+                    <div key={event.eventId} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between gap-4 group hover:border-teal-100 transition-all">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 shadow-inner">
+                          {event.eventUrl ? (
+                            <img src={event.eventUrl} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50"><Calendar size={20} /></div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:text-teal-700 transition-colors">{event.title}</h4>
+                          <p className="text-xs text-slate-600 mt-0.5 line-clamp-1">{event.about || 'No description available for this event.'}</p>
+                          <div className="flex items-center gap-3 mt-1.5 font-bold">
+                            <span className="text-[9px] text-gray-400 uppercase tracking-tight flex items-center gap-1">
+                              <Calendar size={10} /> {new Date(event.createdAt).toLocaleDateString()}
+                            </span>
+                            <span className="text-[9px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md uppercase tracking-widest">
+                              {event.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => navigate(`/events/${event.eventId}`)}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-teal-600 hover:bg-teal-50 border border-transparent hover:border-teal-100 transition-all flex-shrink-0"
+                        title="View Event Details"
+                      >
+                        <Eye size={18} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-14">
+                  <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-dashed border-slate-200">
+                    <Calendar size={32} className="text-slate-200" />
+                  </div>
+                  <h3 className="font-bold text-gray-700 mb-1">No Approved Events</h3>
+                  <p className="text-sm text-gray-500">This organization hasn't published any approved events yet.</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -222,24 +330,11 @@ const OrganizationDetails = () => {
                     return (
                       <div key={key} className="flex items-start gap-4 group">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm border-2 border-white shadow-sm transition-transform group-hover:scale-110 shrink-0 ${isName ? 'bg-teal-100 text-teal-700' : 'bg-slate-100 text-slate-600'}`}>
-                          {key.charAt(0).toUpperCase()}
+                          {String(key).charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{formatKey(key)}</p>
-                          {Array.isArray(value) ? (
-                            <ul className="space-y-1">
-                              {value.map((item, idx) => (
-                                <li key={idx} className="flex items-center gap-2 text-sm font-bold text-gray-900">
-                                  <span className="w-1 h-1 rounded-full bg-teal-500 shrink-0"></span>
-                                  {String(item)}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <h4 className="font-bold text-gray-900 text-sm truncate" title={String(value)}>
-                              {String(value)}
-                            </h4>
-                          )}
+                          {renderCommitteeValue(value)}
                         </div>
                       </div>
                     );
