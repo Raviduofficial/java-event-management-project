@@ -1,4 +1,4 @@
-package com.neoarkbyte.rutech.service.impl;
+package com.neoarkbyte.rutech.service.impl.file;
 
 
 import com.neoarkbyte.rutech.service.FileService;

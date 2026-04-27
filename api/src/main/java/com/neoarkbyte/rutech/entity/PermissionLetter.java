@@ -25,6 +25,8 @@ public class PermissionLetter{
 
     private STATUS status;
 
+    private String rejectMessage;
+
     @ManyToOne
     @JoinColumn(name = "event_id", unique = false)
     @JsonBackReference

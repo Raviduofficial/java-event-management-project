@@ -1,23 +1,54 @@
-import React, { useState } from 'react';
-import { 
-  Plus, Calendar, ClipboardList, CheckCircle, 
+import React, { useState, useEffect } from 'react';
+import {
+  Plus, Calendar, ClipboardList, CheckCircle,
   MoreVertical, CheckCircle2, User, AlertTriangle,
-  Pencil, Trash2 
+  Pencil, Trash2, FileText, Download, Loader2, Eye,
+  Upload, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import ConfirmModal, { defaultConfirmModalState } from '../components/ConfirmModal';
+import api from '../api/axiosConfig';
 
 const CoordinatorDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { success, error: toastError } = useToast();
 
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('PENDING'); // PENDING, APPROVED, REJECTED
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(defaultConfirmModalState);
+  const [processingConfirm, setProcessingConfirm] = useState(false);
 
-  // Mock Data
-  const recentSubmissions = [
-    { id: 1, name: 'Ruhuna Tech Expo 2024', date: 'Oct 24, 10:45 AM', status: 'APPROVED', statusColor: 'bg-teal-100 text-teal-700' },
-    { id: 2, name: 'Annual Cultural Night', date: 'Oct 23, 02:15 PM', status: 'PENDING', statusColor: 'bg-blue-100 text-blue-700' },
-    { id: 3, name: 'Robotics Workshop v2', date: 'Oct 22, 09:00 AM', status: 'REVISIONS REQUIRED', statusColor: 'bg-red-100 text-red-700' },
-    { id: 4, name: 'Green Campus Initiative', date: 'Oct 21, 04:30 PM', status: 'APPROVED', statusColor: 'bg-teal-100 text-teal-700' },
-  ];
+  // Letter Submission State
+  const [letterForm, setLetterForm] = useState({
+    letterTitle: '',
+    letterDescription: '',
+    eventId: ''
+  });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [submittingLetter, setSubmittingLetter] = useState(false);
+
+  useEffect(() => {
+    if (user?.userId) {
+      fetchCoordinatorEvents();
+    }
+  }, [user]);
+
+  const fetchCoordinatorEvents = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get(`/api/events/coordinator/${user.userId}`, { withCredentials: true });
+      setEvents(res.data.data || []);
+    } catch (error) {
+      console.error("Error fetching coordinator events:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const activities = [
     { id: 1, title: 'Permission letter approved', desc: 'The letter for "Cultural Night" has been reviewed and signed by the Dean.', time: '12 MINS AGO', icon: <CheckCircle2 size={14} />, iconBg: 'bg-teal-600' },
@@ -26,38 +57,146 @@ const CoordinatorDashboard = () => {
   ];
 
   const toggleDropdown = (id) => {
-    if (openDropdownId === id) {
-      setOpenDropdownId(null);
-    } else {
-      setOpenDropdownId(id);
+    setOpenDropdownId(openDropdownId === id ? null : id);
+  };
+
+  const openConfirmModal = ({ title, description, confirmText, action }) => {
+    setConfirmModal({ open: true, title, description, confirmText, action });
+  };
+
+  const closeConfirmModal = () => {
+    if (processingConfirm) return;
+    setConfirmModal(defaultConfirmModalState);
+  };
+
+  const runConfirmAction = async () => {
+    if (!confirmModal.action) return;
+    setProcessingConfirm(true);
+    try {
+      await confirmModal.action();
+      closeConfirmModal();
+    } catch (error) {
+      console.error("Confirmation action failed:", error);
+      toastError("The requested action could not be completed.");
+    } finally {
+      setProcessingConfirm(false);
     }
   };
 
+  const handleDeleteEvent = (eventId) => {
+    openConfirmModal({
+      title: 'Delete Event',
+      description: 'Are you sure you want to delete this event? This action cannot be undone.',
+      confirmText: 'Delete Event',
+      action: async () => {
+        await api.delete(`/api/events/${eventId}`, { withCredentials: true });
+        setEvents(events.filter(e => e.eventId !== eventId));
+        success('Event deleted successfully.');
+      }
+    });
+  };
+
+  const handleDeleteLetter = (letterId, eventId) => {
+    openConfirmModal({
+      title: 'Delete Permission Letter',
+      description: 'Delete this permission letter? This action cannot be undone.',
+      confirmText: 'Delete Letter',
+      action: async () => {
+        await api.delete(`/api/letters/${letterId}`, { withCredentials: true });
+        setEvents(events.map(event => {
+          if (event.eventId === eventId) {
+            return {
+              ...event,
+              permissionLetters: event.permissionLetters.filter(l => l.letterId !== letterId)
+            };
+          }
+          return event;
+        }));
+        success('Permission letter deleted successfully.');
+      }
+    });
+  };
+
+  const handleAddLetter = async (e) => {
+    e.preventDefault();
+    if (!letterForm.eventId || !selectedFile) {
+      toastError("Please select an event and upload a letter file.");
+      return;
+    }
+
+    setSubmittingLetter(true);
+    try {
+      // 1. Upload File
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const uploadRes = await api.post('/api/files/upload', formData, {
+        withCredentials: true,
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      const filename = uploadRes.data.data;
+      const letterUrl = `http://localhost:8080/api/files/cdn/${filename}`;
+
+      // 2. Create Letter
+      await api.post('/api/letters', {
+        ...letterForm,
+        letterUrl
+      }, { withCredentials: true });
+
+      // 3. Refresh and Reset
+      success("Letter submitted successfully!");
+      setLetterForm({ letterTitle: '', letterDescription: '', eventId: '' });
+      setSelectedFile(null);
+      fetchCoordinatorEvents();
+    } catch (error) {
+      console.error("Error submitting letter:", error);
+      toastError("Failed to submit letter.");
+    } finally {
+      setSubmittingLetter(false);
+    }
+  };
+
+  const filteredEvents = events.filter(event => event.status === activeTab);
+
+  const stats = {
+    active: events.filter(e => e.status === 'APPROVED').length,
+    pending: events.filter(e => e.status === 'PENDING').length,
+    total: events.length
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center text-slate-500">
+        <Loader2 className="animate-spin text-teal-600 mb-4" size={48} />
+        <p className="font-bold tracking-widest uppercase text-xs">Loading Dashboard...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#f8fafc] font-sans text-left min-h-screen pb-20 relative">
-      
-      {/* 🚀 Z-INDEX FIX: Overlay එක z-40 කරලා තියෙන්නේ */}
+
       {openDropdownId && (
-        <div 
-          className="fixed inset-0 z-40" 
+        <div
+          className="fixed inset-0 z-40"
           onClick={() => setOpenDropdownId(null)}
         ></div>
       )}
 
-      {/* 🚀 Z-INDEX FIX: මෙතන තිබ්බ z-0 අයින් කරා */}
       <main className="max-w-7xl mx-auto p-8 mt-4 relative">
-        
+
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
           <div>
-            <h1 className="text-4xl font-extrabold text-[#0b1120] tracking-tight mb-2">Hello, Coordinator</h1>
+            <h1 className="text-4xl font-extrabold text-[#0b1120] tracking-tight mb-2 uppercase">Hello, {user?.username}</h1>
             <p className="text-gray-600 text-sm">
-              You have <span className="font-bold text-teal-700">12 pending validations</span> requiring your attention today.
+              Manage your event submissions and tracked approvals in one place.
             </p>
           </div>
-          
-          <button 
-            onClick={() => navigate('/add-event')}
+
+          <button
+            onClick={() => navigate('/coordinator/events/add')}
             className="mt-4 md:mt-0 flex items-center gap-2 bg-[#0b1120] hover:bg-slate-800 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-md transition-all active:scale-95"
           >
             <Plus size={18} /> Add New Event
@@ -68,31 +207,31 @@ const CoordinatorDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow">
             <div>
-              <p className="text-[10px] font-bold text-gray-500 tracking-widest uppercase mb-2">Active Events</p>
-              <h3 className="text-4xl font-extrabold text-[#0b1120] mb-2">24</h3>
-              <p className="text-[10px] font-bold text-teal-600 flex items-center gap-1">↗ +3 from last week</p>
+              <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-2">Approved Events</p>
+              <h3 className="text-4xl font-extrabold text-teal-600 mb-2">{stats.active}</h3>
+              <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-tight">Confirmed Entries</p>
             </div>
-            <div className="w-14 h-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center shadow-inner">
               <Calendar size={24} />
             </div>
           </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow">
             <div>
-              <p className="text-[10px] font-bold text-gray-500 tracking-widest uppercase mb-2">Pending Approval</p>
-              <h3 className="text-4xl font-extrabold text-[#0b1120] mb-2">12</h3>
-              <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1">⏱ Requires review</p>
+              <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-2">Pending Review</p>
+              <h3 className="text-4xl font-extrabold text-[#0b1120] mb-2">{stats.pending}</h3>
+              <p className="text-[10px] font-bold text-amber-500 flex items-center gap-1 uppercase tracking-tight">Awaiting Approval</p>
             </div>
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center shadow-inner">
               <ClipboardList size={24} />
             </div>
           </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center hover:shadow-md transition-shadow">
             <div>
-              <p className="text-[10px] font-bold text-gray-500 tracking-widest uppercase mb-2">Validated Events</p>
-              <h3 className="text-4xl font-extrabold text-[#0b1120] mb-2">156</h3>
-              <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1">✓ Total completions</p>
+              <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-2">Total Submissions</p>
+              <h3 className="text-4xl font-extrabold text-[#0b1120] mb-2">{stats.total}</h3>
+              <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-tight">Overall Volume</p>
             </div>
-            <div className="w-14 h-14 rounded-2xl bg-gray-100 text-gray-600 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-slate-50 text-slate-500 flex items-center justify-center shadow-inner">
               <CheckCircle size={24} />
             </div>
           </div>
@@ -100,124 +239,253 @@ const CoordinatorDashboard = () => {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          
+
           {/* Left Column: Recent Submissions */}
-          <div className="lg:col-span-2">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-[#0b1120]">Recent Submissions</h2>
-              <button className="text-sm font-bold text-teal-700 hover:text-teal-800 transition-colors">View All</button>
-            </div>
-            
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible relative z-10"> 
-              <div className="overflow-x-auto overflow-y-visible">
-                <table className="w-full text-left text-sm whitespace-nowrap">
-                  <thead className="bg-[#f8fafc] border-b border-gray-100">
-                    <tr>
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Event Name</th>
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Submission Date</th>
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Status</th>
-                      <th className="py-4 px-6 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {recentSubmissions.map((sub) => (
-                      <tr key={sub.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="py-5 px-6 font-bold text-[#0b1120]">{sub.name}</td>
-                        <td className="py-5 px-6 text-gray-600">{sub.date}</td>
-                        <td className="py-5 px-6">
-                          <span className={`text-[9px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider ${sub.statusColor}`}>
-                            {sub.status}
-                          </span>
-                        </td>
-                        
-                        {/* Action Column with 3-Dots Dropdown */}
-                        <td className="py-5 px-6 text-right relative">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation(); 
-                              toggleDropdown(sub.id);
-                            }}
-                            className={`p-2 rounded-lg transition-colors relative z-10 ${openDropdownId === sub.id ? 'bg-teal-50 text-teal-700' : 'text-gray-400 hover:bg-gray-100 hover:text-[#0b1120]'}`}
-                          >
-                            <MoreVertical size={18} />
-                          </button>
-
-                          {/* 🚀 Z-INDEX FIX: Dropdown එක z-50 කරලා තියෙන්නේ Overlay එකට උඩින් එන්න */}
-                          {openDropdownId === sub.id && (
-                            <div className="absolute right-12 top-10 w-36 bg-white border border-gray-100 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-left">
-                              
-                              {/* 🚀 Edit Button Fixed */}
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation(); // බට්න් එක එබුවම වෙන දේවල් නවත්තනවා
-                                  setOpenDropdownId(null); // Dropdown එක වහනවා
-                                  navigate('/manage-event'); // 🚀 Page එකට යනවා
-                                }}
-                                className="w-full flex items-center justify-start gap-3 px-4 py-3 text-xs font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700 transition-colors"
-                              >
-                                <Pencil size={14} /> Edit
-                              </button>
-                              
-                              <div className="h-px bg-gray-100 w-full"></div>
-                              
-                              {/* Delete Button */}
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation(); 
-                                  alert(`Deleted event: ${sub.name}`); 
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full flex items-center justify-start gap-3 px-4 py-3 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
-                              >
-                                <Trash2 size={14} /> Delete
-                              </button>
-                              
-                            </div>
-                          )}
-                        </td>
-
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <div className="lg:col-span-2 space-y-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <h2 className="text-xl font-bold text-[#0b1120]">Your Event Repository</h2>
+              <div className="flex bg-slate-200/50 p-1 rounded-xl border border-slate-200">
+                {['PENDING', 'APPROVED', 'REJECTED'].map(status => (
+                  <button
+                    key={status}
+                    onClick={() => setActiveTab(status)}
+                    className={`px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all ${activeTab === status ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    {status}
+                  </button>
+                ))}
               </div>
+            </div>
+
+            <div className="space-y-4 max-h-[68vh] overflow-y-auto pr-2">
+              {filteredEvents.length > 0 ? filteredEvents.map((event) => (
+                <div key={event.eventId} className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden hover:border-teal-100 transition-all group">
+                  <div className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-5">
+                      <div className="w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 flex-shrink-0 shadow-inner group-hover:scale-105 transition-transform duration-500">
+                        {event.eventUrl ? (
+                          <img src={event.eventUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-300"><Calendar size={24} /></div>
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 line-clamp-1">{event.title}</h4>
+                        <p className="text-xs text-slate-500 mt-1 line-clamp-1">{event.about || 'No description provided'}</p>
+                        <div className="mt-2 flex items-center gap-3">
+                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{new Date(event.createdAt).toLocaleDateString()}</span>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest ${event.status === 'APPROVED' ? 'bg-teal-50 text-teal-600' :
+                              event.status === 'REJECTED' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
+                            }`}>
+                            {event.status}
+                          </span>
+                        </div>
+                        {event.status === 'REJECTED' && event.rejectMessage && (
+                          <p className="mt-3 text-[10px] text-red-600 font-medium leading-relaxed bg-red-50 border border-red-100 rounded-2xl p-3">
+                            {event.rejectMessage}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                      <button
+                        onClick={() => navigate(`/events/${event.eventId}`)}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:bg-slate-50 hover:text-slate-800 transition-colors"
+                      >
+                        <Eye size={18} />
+                      </button>
+                      
+                      {event.status === 'APPROVED' && (
+                        <button 
+                          onClick={() => navigate(`/coordinator/events/${event.eventId}/modify`)}
+                          className="w-10 h-10 rounded-xl flex items-center justify-center text-teal-600 hover:bg-teal-50 transition-colors"
+                          title="Modify Event"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleDeleteEvent(event.eventId)}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Associated Letters Section */}
+                  {event.permissionLetters && event.permissionLetters.length > 0 && (
+                    <div className="bg-slate-50/50 border-t border-slate-100 p-6 space-y-3">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Letter Manifest ({event.permissionLetters.length})</p>
+                      {event.permissionLetters.map((letter) => (
+                        <div key={letter.letterId} className="flex items-center justify-between bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                              <FileText size={16} />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-700 line-clamp-1">{letter.letterTitle}</p>
+                              <span className={`text-[8px] font-black uppercase tracking-widest ${letter.status === 'APPROVED' ? 'text-teal-600' :
+                                  letter.status === 'REJECTED' ? 'text-red-500' : 'text-amber-500'
+                                }`}>
+                                {letter.status}
+                              </span>
+                              {letter.status === 'REJECTED' && letter.rejectMessage && (
+                                <p className="mt-3 text-[10px] text-red-600 font-medium leading-relaxed bg-red-50 border border-red-100 rounded-2xl p-3">
+                                  {letter.rejectMessage}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={letter.letterUrl} target="_blank" rel="noreferrer"
+                              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 p-2 rounded-lg transition-colors"
+                            >
+                              <Download size={14} />
+                            </a>
+                            <button
+                              onClick={() => handleDeleteLetter(letter.letterId, event.eventId)}
+                              className="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )) : (
+                <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+                  <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Calendar size={32} className="text-slate-200" />
+                  </div>
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">No {activeTab.toLowerCase()} submissions in this view</p>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Right Column: Sidebar */}
           <div className="space-y-10">
-            {/* Activity Stream */}
-            <div>
-              <h2 className="text-xl font-bold text-[#0b1120] mb-6">Activity Stream</h2>
-              <div className="relative border-l-2 border-gray-200 ml-4 space-y-8">
-                {activities.map((act) => (
-                  <div key={act.id} className="relative pl-8">
-                    <div className={`absolute -left-[13px] top-0 w-6 h-6 rounded-full ${act.iconBg} text-white flex items-center justify-center border-4 border-[#f8fafc]`}>
-                      {act.icon}
-                    </div>
-                    <h5 className="text-sm font-bold text-[#0b1120]">{act.title}</h5>
-                    <p className="text-xs text-gray-500 mt-2 leading-relaxed">{act.desc}</p>
-                    <p className="text-[9px] font-bold text-gray-400 mt-2 tracking-widest uppercase">{act.time}</p>
-                  </div>
-                ))}
+            {/* Add Letter Form */}
+            <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+                  <FileText size={20} />
+                </div>
+                <h2 className="text-xl font-bold text-[#0b1120]">Submit Letter</h2>
               </div>
+
+              <form onSubmit={handleAddLetter} className="space-y-5">
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Link to Event</label>
+                  <select
+                    value={letterForm.eventId}
+                    onChange={(e) => setLetterForm({ ...letterForm, eventId: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all cursor-pointer"
+                    required
+                  >
+                    <option value="">Select an Event</option>
+                    {events.filter(e => e.status === 'APPROVED').map(e => (
+                      <option key={e.eventId} value={e.eventId}>{e.title}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Letter Title</label>
+                  <input
+                    type="text"
+                    value={letterForm.letterTitle}
+                    onChange={(e) => setLetterForm({ ...letterForm, letterTitle: e.target.value })}
+                    placeholder="e.g. Permission for Venue"
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Description</label>
+                  <textarea
+                    value={letterForm.letterDescription}
+                    onChange={(e) => setLetterForm({ ...letterForm, letterDescription: e.target.value })}
+                    placeholder="Briefly describe the purpose..."
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all h-24 resize-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Upload PDF Letter</label>
+                  <div className={`relative group transition-all ${selectedFile ? 'border-teal-500 bg-teal-50/30' : 'border-slate-200 hover:border-teal-200 bg-slate-50'} border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer`}>
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => setSelectedFile(e.target.files[0])}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    {selectedFile ? (
+                      <div className="flex items-center justify-between gap-3 text-teal-700">
+                        <div className="flex items-center gap-2 truncate">
+                          <CheckCircle size={16} />
+                          <span className="text-xs font-bold truncate">{selectedFile.name}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
+                          className="p-1 hover:bg-teal-100 rounded-md relative z-20"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <div className="mx-auto w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-400 group-hover:text-teal-500 transition-colors shadow-sm">
+                          <Upload size={16} />
+                        </div>
+                        <p className="text-[10px] font-bold text-slate-400 group-hover:text-teal-600 transition-colors">DRAG & DROP OR CLICK</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submittingLetter}
+                  className="w-full bg-[#0b1120] hover:bg-slate-800 disabled:bg-slate-400 text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 mt-4"
+                >
+                  {submittingLetter ? (
+                    <><Loader2 className="animate-spin" size={14} /> Processing...</>
+                  ) : (
+                    <>Submit Request</>
+                  )}
+                </button>
+              </form>
             </div>
 
-            {/* Performance Tracking Card */}
-            <div className="bg-[#0b1120] rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
-              <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-teal-500/10 rounded-full blur-2xl pointer-events-none"></div>
-              <p className="text-[10px] font-bold text-teal-400 tracking-widest uppercase mb-3 relative z-10">Performance Tracking</p>
-              <h3 className="text-lg font-bold leading-tight mb-6 relative z-10">
-                Validate system performance for next semester events.
-              </h3>
-              <button className="w-full bg-teal-700 hover:bg-teal-600 text-white py-3 rounded-xl text-sm font-bold shadow-md transition-all active:scale-95 relative z-10">
-                Generate Report
-              </button>
+            {/* Support Card - Simplified */}
+            <div className="bg-[#0b1120] rounded-[2rem] p-8 text-white shadow-2xl shadow-slate-300 relative overflow-hidden">
+              <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+              <p className="text-[10px] font-bold text-teal-400 tracking-widest uppercase mb-4 relative z-10">Coordinator Help</p>
+              <h3 className="text-lg font-bold leading-tight mb-4 relative z-10 tracking-tight"> Need assistance with your submission? </h3>
+              <p className="text-xs text-slate-400 mb-6 relative z-10 leading-relaxed"> Contact the administrative office for guidance on permission protocols. </p>
+              <button className="w-full bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all relative z-10"> Support Hub </button>
             </div>
           </div>
 
         </div>
       </main>
+
+      <ConfirmModal
+        modal={confirmModal}
+        onConfirm={runConfirmAction}
+        onCancel={closeConfirmModal}
+        processing={processingConfirm}
+      />
     </div>
   );
 };
